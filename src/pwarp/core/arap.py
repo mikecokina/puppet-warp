@@ -1,5 +1,3 @@
-from typing import Union
-
 from pwarp.core import ops
 from pwarp.settings import settings
 from pwarp import np
@@ -31,11 +29,11 @@ class StepOne(object):
 
         # Compute G_k matrix for each `k`.
         for k, edge in enumerate(edges):
-            i_vert, j_vert = vertices[edge].copy()
+            i_vert, j_vert = vertices[edge]
             i_index, j_index = edge
 
             l_index, r_index = ops.find_ijlr_vertices(edge, faces)
-            l_vert = vertices[l_index].copy()
+            l_vert = vertices[l_index]
 
             # For 3 neighbour points (when at the graph edge).
             if np.isnan(r_index):
@@ -49,7 +47,7 @@ class StepOne(object):
                 _slice = 6
             # For 4 neighbour points (when at the graph edge).
             else:
-                r_vert = vertices[r_index].copy()
+                r_vert = vertices[r_index]
                 g = np.array([[i_vert[0], i_vert[1], 1, 0],
                               [i_vert[1], -i_vert[0], 0, 1],
                               [j_vert[0], j_vert[1], 1, 0],
@@ -62,9 +60,9 @@ class StepOne(object):
                 _slice = 8
 
             # G[k,:,:]
-            gi[k, :] = [i_index, j_index, l_index, r_index]
+            gi[k, :] = [i_index, j_index, l_index, np.nan if np.isnan(r_index) else r_index]
             x_matrix_pad = np.linalg.lstsq(g.T @ g, g.T, rcond=None)[0]
-            g_product[k, :, :_slice] = x_matrix_pad[0:2, :]
+            g_product[k, :, :_slice] = x_matrix_pad[0:2]
 
         return gi, g_product
 
@@ -99,8 +97,8 @@ class StepOne(object):
             g = g_product[k, :, :_slice]
             oz = _oz[:, :_slice]
             h_calc = oz - (ek_matrix @ g)
-            h_matrix[k * 2, :_slice] = h_calc[0, :]
-            h_matrix[k * 2 + 1, :_slice] = h_calc[1, :]
+            h_matrix[k * 2, :_slice] = h_calc[0]
+            h_matrix[k * 2 + 1, :_slice] = h_calc[1]
 
         return h_matrix
 
@@ -183,7 +181,6 @@ class StepTwo(object):
 
 if __name__ == '__main__':
     from pwarp._io import read_wavefront
-    from matplotlib import pyplot as plt
 
     _nr, _nf, _r, _f = read_wavefront('../data/puppet.obj')
     _edges = ops.get_edges(_nf, _f)

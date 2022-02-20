@@ -21,7 +21,7 @@ def read_wavefront(path: str):
             data = parse_line(line)
             if line[0] == "v":
                 # append vertex
-                vertices.append(data[:2])
+                vertices.append(np.array(data[:2], dtype=settings.FLOAT_DTYPE))
 
             elif line[0] == "f":
                 # append face

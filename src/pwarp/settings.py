@@ -3,6 +3,7 @@ import numpy as np
 
 class _DefaultSettings(object):
     FLOAT_DTYPE = np.float32
+    INT_DTYPE = np.int32
     INDEX_DTYPE = np.uint32
 
 
@@ -24,7 +25,9 @@ class Settings(_DefaultSettings):
     @classmethod
     def settings_serializer(cls):
         return {
-            "DTYPE": cls.FLOAT_DTYPE,
+            "FLOAT_DTYPE": cls.FLOAT_DTYPE,
+            "INT_DTYPE": cls.INT_DTYPE,
+            "INDEX_DTYPE": cls.INDEX_DTYPE,
         }
 
     @classmethod
