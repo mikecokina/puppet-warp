@@ -104,6 +104,78 @@ class StepOne(object):
 
         return h_matrix
 
+    @staticmethod
+    def compute_v_prime(
+            edges: np.ndarray,
+            vertices: np.ndarray,
+            gi: np.ndarray,
+            h_matrix: np.ndarray,
+            c_indices: np.ndarray,
+            c_vertices: np.ndarray,
+            weight: settings.FLOAT_DTYPE = settings.FLOAT_DTYPE(1000.)
+    ):
+        """
+        TODO:
+            - make this method cacheable on A and b matrices.
+
+        The cookbook from paper requires to compute expression `A1 @ v′ = b1`.
+        Regards to the paper, we will compute v'.
+
+        For more information see page 24 of paper on::
+
+            https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
+
+        Warning: The position of h_{kuv} in matrix A of paper is based on position of given points (in k-th edge
+        surounding points) in original vertices. It just demonstrates that 01, 23, 45, 67 indices of H row form a pair,
+        but you have to put them on valid position or be aware of ordering of results in v' vector.
+
+        :return: np.ndarray;
+        """
+        dtype = settings.FLOAT_DTYPE
+        # Prepare defaults.
+        a_matrix = np.zeros((np.size(edges, 0) * 2 + np.size(c_indices) * 2, np.size(vertices, 0) * 2), dtype=dtype)
+        b_vector = np.zeros((np.size(edges, 0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype)
+        v_prime = np.zeros((np.size(vertices, 0), 2), dtype=dtype)
+
+        # Fill values in prepared matrices/vectors
+        for k, g_indices in enumerate(gi):
+            for i, point_index in enumerate(g_indices):
+                if not np.isnan(point_index):
+                    point_index = int(point_index)
+                    # In the h_matrix we have stored values for index k (edge index) in following form:
+                    # for k = 0, two lines of h_matrix are going one after another like
+                    # [k00, k10, k20, ..., k70] forlowed by [k01, k11, k21, ..., k71], hence we have to access values
+                    # via (k * 2), and (k * 2 + 1).
+
+                    # Variable point_index represent index from original vertices set of vertex from
+                    # 4 neighbours of k-th edge.
+                    # Index i represents an index of point from 4 (3 in case of contour) neighbours in k-th set.
+
+                    # The row in the A matrix is defiend by index k. Since we have stored for given k index two rows
+                    # of H matrix, we have to work with indexing of (k * 2) and (k * 2 + 1).
+
+                    # The column of H matrix is accessible via index i, since H row is 0 - 7 indices long. Than
+                    # (i * 2) and (i * 2 + 1) will access h valus for given point in given h row.
+
+                    a_matrix[k * 2, point_index * 2] = h_matrix[k * 2, i * 2]
+                    a_matrix[k * 2 + 1, point_index * 2] = h_matrix[k * 2 + 1, i * 2]
+                    a_matrix[k * 2, point_index * 2 + 1] = h_matrix[k * 2, i * 2 + 1]
+                    a_matrix[k * 2 + 1, point_index * 2 + 1] = h_matrix[k * 2 + 1, i * 2 + 1]
+
+        for c_enum_index, c_vertex_index in enumerate(c_indices):
+            # Set weights for given position of control point.
+            a_matrix[np.size(edges, 0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
+            a_matrix[np.size(edges, 0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
+            # Do the same for values of b_vector
+            b_vector[np.size(edges, 0) * 2 + c_enum_index * 2] = weight * c_vertices[c_enum_index, 0]
+            b_vector[np.size(edges, 0) * 2 + c_enum_index * 2 + 1] = weight * c_vertices[c_enum_index, 1]
+
+        v = np.linalg.lstsq(a_matrix.T @ a_matrix, a_matrix.T @ b_vector, rcond=None)[0]
+        v_prime[:, 0] = v[0::2, 0]
+        v_prime[:, 1] = v[1::2, 0]
+
+        return v_prime, a_matrix, b_vector
+
 
 class StepTwo(object):
     pass
@@ -117,7 +189,10 @@ if __name__ == '__main__':
     _edges = ops.get_edges(_nf, _f)
     _edge = _edges[161]
     _gi, _g_product = StepOne.compute_g_matrix(_r, _edges, _f)
-    StepOne.compute_h_matrix(_edges, _g_product, _gi, _r)
+    _h_matrix = StepOne.compute_h_matrix(_edges, _g_product, _gi, _r)
+    StepOne.compute_v_prime(_edges, _r, _gi, _h_matrix, np.array([1], dtype=np.uint32),
+                            c_vertices=np.array([_r[1]], dtype=settings.FLOAT_DTYPE),
+                            weight=1000.)
 
     # _l_, _r_ = find_ijlr_vertices(_edge, _f, _r)
     #
