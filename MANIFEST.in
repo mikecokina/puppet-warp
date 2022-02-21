@@ -1,0 +1,7 @@
+include pwarp/data/*
+include version.py
+include setup.py
+include setup.cfg
+include LICENCE
+include README.rst
+include CHANGELOG.rst
