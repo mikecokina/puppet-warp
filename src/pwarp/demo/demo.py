@@ -101,6 +101,7 @@ class Demo(object):
                     a = (a - settings.INT_DTYPE(640)) / settings.INT_DTYPE(-180)
                     b = (b - settings.INT_DTYPE(400)) / settings.INT_DTYPE(-180)
 
+                    # Moving control index is index appliable to array `selected`.
                     moving_c_index = np.where(selected == self.moving_index)[0][0]
                     # New location of control points after movement.
                     locations[moving_c_index, :] = np.array([a, b], dtype=settings.FLOAT_DTYPE)

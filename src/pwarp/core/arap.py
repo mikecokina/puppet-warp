@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from pwarp.core import ops
 from pwarp.settings import settings
 from pwarp import np
@@ -5,7 +7,11 @@ from pwarp import np
 
 class StepOne(object):
     @staticmethod
-    def compute_g_matrix(vertices: np.ndarray, edges: np.ndarray, faces: np.ndarray):
+    def compute_g_matrix(
+            vertices: np.ndarray,
+            edges: np.ndarray,
+            faces: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         The paper requires to compute expression (G.T)^{-1} @ G.T = X.
         The problem might be solved by solving equation (G.T @ G) @ X = G.T, hence
@@ -67,7 +73,12 @@ class StepOne(object):
         return gi, g_product
 
     @staticmethod
-    def compute_h_matrix(edges: np.ndarray, g_product: np.ndarray, gi: np.ndarray, vertices: np.ndarray):
+    def compute_h_matrix(
+            edges: np.ndarray,
+            g_product: np.ndarray,
+            gi: np.ndarray,
+            vertices: np.ndarray
+    ) -> np.ndarray:
         """
         Transformed term (v′_j − v′_i) − T_{ij} (v_j − v_i) from paper requires
         computation of matrix H. To be able compute matrix H, we need matrix G
@@ -111,7 +122,7 @@ class StepOne(object):
             c_indices: np.ndarray,
             c_vertices: np.ndarray,
             weight: settings.FLOAT_DTYPE = settings.FLOAT_DTYPE(1000.)
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         TODO:
             - make this method cacheable on A and b matrices.
@@ -127,7 +138,7 @@ class StepOne(object):
         surounding points) in original vertices. It just demonstrates that 01, 23, 45, 67 indices of H row form a pair,
         but you have to put them on valid position or be aware of ordering of results in v' vector.
 
-        :return: np.ndarray;
+        :return: Tuple[np.ndarray, np.ndarray, np.ndarray]; (v_prime, A matrix, b vector)
         """
         dtype = settings.FLOAT_DTYPE
         # Prepare defaults.
@@ -176,7 +187,65 @@ class StepOne(object):
 
 
 class StepTwo(object):
-    pass
+    @staticmethod
+    def compute_t_matrix(
+            edges: np.ndarray,
+            g_product: np.ndarray,
+            gi: np.ndarray,
+            v_prime: np.ndarray
+    ) -> np.ndarray:
+        """
+        From paper:
+
+        The second step takes the rotation information from the result of the first step
+        (i.e., computing the explicit values of T′k and normalizing them to remove the
+        scaling factor), rotates the original edge vectors ek by the amount T′k, and
+        then solves Equation (1) using the original rotated edge vectors. That is, we
+        compute the rotation of each edge by using the result of the first step,
+        and then normalize it.
+        
+        :param edges: np.ndarray; 
+        :param g_product: np.ndarray; 
+        :param gi: np.ndarray;
+        :param v_prime: np.ndarray; transformed point in sense of rotation from step one
+        :return: np.ndarray;
+        """
+        t_matrix = np.zeros(((np.size(edges, 0)), 2, 2,))
+
+        # We compute T′k for each edge.
+        for k, edge in enumerate(edges):
+            if np.isnan(gi[k, 3]):
+                _slice = 6
+                v = np.array([
+                    [v_prime[int(gi[k, 0]), 0]],
+                    [v_prime[int(gi[k, 0]), 1]],
+                    [v_prime[int(gi[k, 1]), 0]],
+                    [v_prime[int(gi[k, 1]), 1]],
+                    [v_prime[int(gi[k, 2]), 0]],
+                    [v_prime[int(gi[k, 2]), 1]]
+                ], dtype=settings.FLOAT_DTYPE)
+            else:
+                _slice = 8
+                v = np.array([
+                    [v_prime[int(gi[k, 0]), 0]],
+                    [v_prime[int(gi[k, 0]), 1]],
+                    [v_prime[int(gi[k, 1]), 0]],
+                    [v_prime[int(gi[k, 1]), 1]],
+                    [v_prime[int(gi[k, 2]), 0]],
+                    [v_prime[int(gi[k, 2]), 1]],
+                    [v_prime[int(gi[k, 3]), 0]],
+                    [v_prime[int(gi[k, 3]), 1]]],
+                    dtype=settings.FLOAT_DTYPE
+                )
+            # We compute the rotation of each edge by using the result of the first step,
+            g = g_product[k, :, :_slice]
+            t = g @ v
+            rot = np.array([[t[0], t[1]], [-t[1], t[0]]], dtype=settings.FLOAT_DTYPE)
+            # and then normalize it.
+            t_normalized = (settings.FLOAT_DTYPE(1) / np.sqrt(np.power(t[0], 2) + np.power(t[1], 2))) * rot
+            # Store result.
+            t_matrix[k, :, :] = t_normalized[:, :, 0]
+        return t_matrix
 
 
 if __name__ == '__main__':
@@ -187,20 +256,20 @@ if __name__ == '__main__':
     _edge = _edges[161]
     _gi, _g_product = StepOne.compute_g_matrix(_r, _edges, _f)
     _h_matrix = StepOne.compute_h_matrix(_edges, _g_product, _gi, _r)
-    StepOne.compute_v_prime(_edges, _r, _gi, _h_matrix, np.array([1], dtype=np.uint32),
-                            c_vertices=np.array([_r[1]], dtype=settings.FLOAT_DTYPE),
-                            weight=1000.)
+    _selected = np.array([1], dtype=settings.INDEX_DTYPE)
+    _moving_index = 0
 
-    # _l_, _r_ = find_ijlr_vertices(_edge, _f, _r)
-    #
-    # fig, ax = plt.subplots()
-    # plt.tight_layout(pad=0)
-    # ax.triplot(_r.T[0], _r.T[1], _f)
-    # ax.set_aspect('equal')
-    # ax.axis('off')
-    #
-    # ax.scatter(_r[_edge].T[0], _r[_edge].T[1], c="r", s=20)
-    # ax.scatter(_l_.T[0], _l_.T[1], c="g", s=20)
-    # if not np.all(np.isnan(_r_)):
-    #     ax.scatter(_r_.T[0], _r_.T[1], c="k", s=20)
-    # plt.show()
+    _locations = _r[_selected, :]
+    _a, _b = _r[_moving_index] + 0.01
+    _locations[_moving_index, :] = np.array([_a, _b], dtype=settings.FLOAT_DTYPE)
+
+    _v_prime, _, _ = StepOne.compute_v_prime(
+        edges=_edges,
+        vertices=_r,
+        gi=_gi,
+        h_matrix=_h_matrix,
+        c_indices=_selected,
+        c_vertices=_locations
+    )
+
+    _t_matrix = StepTwo.compute_t_matrix(_edges, _g_product, _gi, _v_prime)
