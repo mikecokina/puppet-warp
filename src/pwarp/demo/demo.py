@@ -3,10 +3,9 @@ import sys
 import cv2
 
 from pwarp import np, _io
-from pwarp.core import ops
+from pwarp.core import ops, dtype
 from pwarp.core.arap import StepOne, StepTwo
 from pwarp.demo import misc
-from pwarp.settings import settings
 
 
 class Demo(object):
@@ -98,13 +97,13 @@ class Demo(object):
                         locations = self.new_vertices[selected, :]
 
                     # TODO: make folowing hardcoded transformations to be dynamic
-                    a = (a - settings.INT_DTYPE(640)) / settings.INT_DTYPE(-180)
-                    b = (b - settings.INT_DTYPE(400)) / settings.INT_DTYPE(-180)
+                    a = (a - dtype.INT(640)) / dtype.INT(-180)
+                    b = (b - dtype.INT(400)) / dtype.INT(-180)
 
                     # Moving control index is index appliable to array `selected`.
                     moving_c_index = np.where(selected == self.moving_index)[0][0]
                     # New location of control points after movement.
-                    locations[moving_c_index, :] = np.array([a, b], dtype=settings.FLOAT_DTYPE)
+                    locations[moving_c_index, :] = np.array([a, b], dtype=dtype.FLOAT)
 
                     if not np.array_equal(selected, self.selected_old):
                         self.started = True

@@ -1,5 +1,5 @@
 from pwarp import np
-from pwarp.settings import settings
+from pwarp.core import dtype
 
 
 def find_ijlr_vertices(edge: np.ndarray, faces: np.ndarray):
@@ -57,4 +57,4 @@ def get_edges(no_faces: int, faces: np.ndarray):
         edges[index * 3 + 2, :] = [face[0], face[2]]
     edges.sort(axis=1)
     edges = np.unique(edges, axis=0)
-    return np.array(edges, dtype=settings.INDEX_DTYPE)
+    return np.array(edges, dtype=dtype.INDEX)

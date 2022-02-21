@@ -2,13 +2,13 @@ import os
 import re
 
 from pwarp import np
-from pwarp.settings import settings
+from pwarp.core import dtype
 
 
 def read_wavefront(path: str):
     def parse_line(_line):
         _line = re.findall(r"[-+]?\d*\.*\d+", _line)
-        return np.array(_line, dtype=settings.FLOAT_DTYPE)
+        return np.array(_line, dtype=dtype.FLOAT)
 
     vertices, faces = [], []
 
@@ -21,15 +21,15 @@ def read_wavefront(path: str):
             data = parse_line(line)
             if line[0] == "v":
                 # append vertex
-                vertices.append(np.array(data[:2], dtype=settings.FLOAT_DTYPE))
+                vertices.append(np.array(data[:2], dtype=dtype.FLOAT))
 
             elif line[0] == "f":
                 # append face
-                faces.append(np.array(data[:3], dtype=settings.INDEX_DTYPE))
+                faces.append(np.array(data[:3], dtype=dtype.INDEX))
 
-    vertices = np.array(vertices, dtype=settings.FLOAT_DTYPE)
+    vertices = np.array(vertices, dtype=dtype.FLOAT)
     # shift faces by 1 due to convinience in wavefront obj
-    faces = np.array(faces, dtype=settings.INDEX_DTYPE) - 1
+    faces = np.array(faces, dtype=dtype.INDEX) - 1
 
     return len(vertices), len(faces), vertices, faces
 

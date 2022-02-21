@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from pwarp.core import ops
-from pwarp.settings import settings
+from pwarp.core import dtype
 from pwarp import np
 
 
@@ -27,10 +27,10 @@ class StepOne(object):
             gi represents indices of edges that contains result
             for expression (G.T)^{-1} @ G.T in g_product
         """
-        g_product = np.zeros((np.size(edges, 0), 2, 8), dtype=settings.FLOAT_DTYPE)
-        gi = np.zeros((np.size(edges, 0), 4), dtype=settings.FLOAT_DTYPE)
+        g_product = np.zeros((np.size(edges, 0), 2, 8), dtype=dtype.FLOAT)
+        gi = np.zeros((np.size(edges, 0), 4), dtype=dtype.FLOAT)
 
-        if edges.dtype not in [settings.INDEX_DTYPE]:
+        if edges.dtype not in [dtype.INDEX]:
             raise ValueError('Invalid dtype of edge indices. Requires np.uint32, np.uint64 or int.')
 
         # Compute G_k matrix for each `k`.
@@ -49,7 +49,7 @@ class StepOne(object):
                               [j_vert[1], -j_vert[0], 0, 1],
                               [l_vert[0], l_vert[1], 1, 0],
                               [l_vert[1], -l_vert[0], 0, 1]],
-                             dtype=settings.FLOAT_DTYPE)
+                             dtype=dtype.FLOAT)
                 _slice = 6
             # For 4 neighbour points (when at the graph edge).
             else:
@@ -62,7 +62,7 @@ class StepOne(object):
                               [l_vert[1], -l_vert[0], 0, 1],
                               [r_vert[0], r_vert[1], 1, 0],
                               [r_vert[1], -r_vert[0], 0, 1]],
-                             dtype=settings.FLOAT_DTYPE)
+                             dtype=dtype.FLOAT)
                 _slice = 8
 
             # G[k,:,:]
@@ -90,16 +90,16 @@ class StepOne(object):
         :param vertices: np.ndarray;
         :return: np.ndarray;
         """
-        h_matrix = np.zeros((np.size(edges, 0) * 2, 8), dtype=settings.FLOAT_DTYPE)
+        h_matrix = np.zeros((np.size(edges, 0) * 2, 8), dtype=dtype.FLOAT)
         for k, edge in enumerate(edges):
             # ...where e is an edge vector..
             ek = np.subtract(*vertices[edge[::-1]])
-            ek_matrix = np.array([[ek[0], ek[1]], [ek[1], -ek[0]]], dtype=settings.FLOAT_DTYPE)
+            ek_matrix = np.array([[ek[0], ek[1]], [ek[1], -ek[0]]], dtype=dtype.FLOAT)
 
             # Ful llength of ones/zero matrix (will be sliced in case on the contour of graph).
             _oz = np.array([[-1, 0, 1, 0, 0, 0, 0, 0],
                             [0, -1, 0, 1, 0, 0, 0, 0]],
-                           dtype=settings.FLOAT_DTYPE)
+                           dtype=dtype.FLOAT)
             if np.isnan(gi[k, 3]):
                 _slice = 6
             else:
@@ -121,7 +121,7 @@ class StepOne(object):
             h_matrix: np.ndarray,
             c_indices: np.ndarray,
             c_vertices: np.ndarray,
-            weight: settings.FLOAT_DTYPE = settings.FLOAT_DTYPE(1000.)
+            weight: dtype.FLOAT = dtype.FLOAT(1000.)
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         TODO:
@@ -140,11 +140,11 @@ class StepOne(object):
 
         :return: Tuple[np.ndarray, np.ndarray, np.ndarray]; (v_prime, A matrix, b vector)
         """
-        dtype = settings.FLOAT_DTYPE
         # Prepare defaults.
-        a1_matrix = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2), dtype=dtype)
-        b1_vector = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype)
-        v_prime = np.zeros((np.size(vertices, axis=0), 2), dtype=dtype)
+        a1_matrix = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2),
+                             dtype=dtype.FLOAT)
+        b1_vector = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype.FLOAT)
+        v_prime = np.zeros((np.size(vertices, axis=0), 2), dtype=dtype.FLOAT)
 
         # Fill values in prepared matrices/vectors
         for k, g_indices in enumerate(gi):
@@ -223,7 +223,7 @@ class StepTwo(object):
                     [v_prime[int(gi[k, 1]), 1]],
                     [v_prime[int(gi[k, 2]), 0]],
                     [v_prime[int(gi[k, 2]), 1]]
-                ], dtype=settings.FLOAT_DTYPE)
+                ], dtype=dtype.FLOAT)
             else:
                 _slice = 8
                 v = np.array([
@@ -235,14 +235,14 @@ class StepTwo(object):
                     [v_prime[int(gi[k, 2]), 1]],
                     [v_prime[int(gi[k, 3]), 0]],
                     [v_prime[int(gi[k, 3]), 1]]],
-                    dtype=settings.FLOAT_DTYPE
+                    dtype=dtype.FLOAT
                 )
             # We compute the rotation of each edge by using the result of the first step,
             g = g_product[k, :, :_slice]
             t = g @ v
-            rot = np.array([[t[0], t[1]], [-t[1], t[0]]], dtype=settings.FLOAT_DTYPE)
+            rot = np.array([[t[0], t[1]], [-t[1], t[0]]], dtype=dtype.FLOAT)
             # and then normalize it.
-            t_normalized = (settings.FLOAT_DTYPE(1) / np.sqrt(np.power(t[0], 2) + np.power(t[1], 2))) * rot
+            t_normalized = (dtype.FLOAT(1) / np.sqrt(np.power(t[0], 2) + np.power(t[1], 2))) * rot
             # Store result.
             t_matrix[k, :, :] = t_normalized[:, :, 0]
         return t_matrix
@@ -254,7 +254,7 @@ class StepTwo(object):
             t_matrix: np.ndarray,
             c_indices: np.ndarray,
             c_vertices: np.ndarray,
-            weight: settings.FLOAT_DTYPE = settings.FLOAT_DTYPE(1000)
+            weight: dtype.FLOAT = dtype.FLOAT(1000)
     ) -> np.ndarray:
         """
 
@@ -263,7 +263,7 @@ class StepTwo(object):
         :param t_matrix: np.ndarray;
         :param c_indices: np.ndarray;
         :param c_vertices: np.ndarray;
-        :param weight: np.float; settings.FLOAT_DTYPE
+        :param weight: np.float; dtype.FLOAT
         :return: np.ndarray;
         """
         # Prepare blueprints.
@@ -299,12 +299,12 @@ if __name__ == '__main__':
     _edge = _edges[161]
     _gi, _g_product = StepOne.compute_g_matrix(_r, _edges, _f)
     _h_matrix = StepOne.compute_h_matrix(_edges, _g_product, _gi, _r)
-    _selected = np.array([1], dtype=settings.INDEX_DTYPE)
+    _selected = np.array([1], dtype=dtype.INDEX)
     _moving_index = 0
 
     _locations = _r[_selected, :]
     _a, _b = _r[_moving_index] + 0.01
-    _locations[_moving_index, :] = np.array([_a, _b], dtype=settings.FLOAT_DTYPE)
+    _locations[_moving_index, :] = np.array([_a, _b], dtype=dtype.FLOAT)
 
     _v_prime, _, _ = StepOne.compute_v_prime(
         edges=_edges,
