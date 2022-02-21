@@ -4,7 +4,7 @@ import cv2
 
 from pwarp import np, _io
 from pwarp.core import ops
-from pwarp.core.arap import StepOne
+from pwarp.core.arap import StepOne, StepTwo
 from pwarp.demo import misc
 from pwarp.settings import settings
 
@@ -112,6 +112,8 @@ class Demo(object):
                     # Transformation.
                     args = self.edges, self.vertices, self.gi, self.h, selected, locations
                     new_vertices, _, _ = StepOne.compute_v_prime(*args)
+                    t_matrix = StepTwo.compute_t_matrix(self.edges, self.g_product, self.gi, new_vertices)
+                    new_vertices = StepTwo.compute_v_2prime(self.edges, self.vertices, t_matrix, selected, locations)
                     self.new_vertices = new_vertices[:]
                     self.draw_mesh(self.new_vertices, self.edges, self.img)
 

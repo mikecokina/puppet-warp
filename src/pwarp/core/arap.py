@@ -142,9 +142,9 @@ class StepOne(object):
         """
         dtype = settings.FLOAT_DTYPE
         # Prepare defaults.
-        a_matrix = np.zeros((np.size(edges, 0) * 2 + np.size(c_indices) * 2, np.size(vertices, 0) * 2), dtype=dtype)
-        b_vector = np.zeros((np.size(edges, 0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype)
-        v_prime = np.zeros((np.size(vertices, 0), 2), dtype=dtype)
+        a1_matrix = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2), dtype=dtype)
+        b1_vector = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype)
+        v_prime = np.zeros((np.size(vertices, axis=0), 2), dtype=dtype)
 
         # Fill values in prepared matrices/vectors
         for k, g_indices in enumerate(gi):
@@ -166,24 +166,24 @@ class StepOne(object):
                     # The column of H matrix is accessible via index i, since H row is 0 - 7 indices long. Than
                     # (i * 2) and (i * 2 + 1) will access h valus for given point in given h row.
 
-                    a_matrix[k * 2, point_index * 2] = h_matrix[k * 2, i * 2]
-                    a_matrix[k * 2 + 1, point_index * 2] = h_matrix[k * 2 + 1, i * 2]
-                    a_matrix[k * 2, point_index * 2 + 1] = h_matrix[k * 2, i * 2 + 1]
-                    a_matrix[k * 2 + 1, point_index * 2 + 1] = h_matrix[k * 2 + 1, i * 2 + 1]
+                    a1_matrix[k * 2, point_index * 2] = h_matrix[k * 2, i * 2]
+                    a1_matrix[k * 2 + 1, point_index * 2] = h_matrix[k * 2 + 1, i * 2]
+                    a1_matrix[k * 2, point_index * 2 + 1] = h_matrix[k * 2, i * 2 + 1]
+                    a1_matrix[k * 2 + 1, point_index * 2 + 1] = h_matrix[k * 2 + 1, i * 2 + 1]
 
         for c_enum_index, c_vertex_index in enumerate(c_indices):
             # Set weights for given position of control point.
-            a_matrix[np.size(edges, 0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
-            a_matrix[np.size(edges, 0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
+            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
+            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
             # Do the same for values of b_vector
-            b_vector[np.size(edges, 0) * 2 + c_enum_index * 2] = weight * c_vertices[c_enum_index, 0]
-            b_vector[np.size(edges, 0) * 2 + c_enum_index * 2 + 1] = weight * c_vertices[c_enum_index, 1]
+            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2] = weight * c_vertices[c_enum_index, 0]
+            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1] = weight * c_vertices[c_enum_index, 1]
 
-        v = np.linalg.lstsq(a_matrix.T @ a_matrix, a_matrix.T @ b_vector, rcond=None)[0]
+        v = np.linalg.lstsq(a1_matrix.T @ a1_matrix, a1_matrix.T @ b1_vector, rcond=None)[0]
         v_prime[:, 0] = v[0::2, 0]
         v_prime[:, 1] = v[1::2, 0]
 
-        return v_prime, a_matrix, b_vector
+        return v_prime, a1_matrix, b1_vector
 
 
 class StepTwo(object):
@@ -210,7 +210,7 @@ class StepTwo(object):
         :param v_prime: np.ndarray; transformed point in sense of rotation from step one
         :return: np.ndarray;
         """
-        t_matrix = np.zeros(((np.size(edges, 0)), 2, 2,))
+        t_matrix = np.zeros(((np.size(edges, axis=0)), 2, 2,))
 
         # We compute T′k for each edge.
         for k, edge in enumerate(edges):
@@ -247,6 +247,49 @@ class StepTwo(object):
             t_matrix[k, :, :] = t_normalized[:, :, 0]
         return t_matrix
 
+    @staticmethod
+    def compute_v_2prime(
+            edges: np.ndarray,
+            vertices: np.ndarray,
+            t_matrix: np.ndarray,
+            c_indices: np.ndarray,
+            c_vertices: np.ndarray,
+            weight: settings.FLOAT_DTYPE = settings.FLOAT_DTYPE(1000)
+    ) -> np.ndarray:
+        """
+
+        :param edges: np.ndarray;
+        :param vertices: np.ndarray;
+        :param t_matrix: np.ndarray;
+        :param c_indices: np.ndarray;
+        :param c_vertices: np.ndarray;
+        :param weight: np.float; settings.FLOAT_DTYPE
+        :return: np.ndarray;
+        """
+        # Prepare blueprints.
+        v_2prime = np.zeros((np.size(vertices, 0), 2))
+        a2_matrix = np.zeros((np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)))
+        b2_vector = np.zeros((np.size(edges, axis=0) + np.size(c_indices), 2))
+
+        # Update values from precomputed components.
+        # Matrix A2 is identical for both x- and y- components.
+        for k, edge in enumerate(edges):
+            # The values are set due to optimization equation from paper, where
+            # arg min {sum_{i,j}||(v_j'' - v_i'')  ... ||} what gives 1 to position
+            # of edge 0 and -1 to position of edge 1 and finally we will obtain (v_j'' - v_i'').
+            a2_matrix[k, int(edge[0])] = -1.
+            a2_matrix[k, int(edge[1])] = 1.
+
+            e = np.subtract(*vertices[edge[::-1]])
+            t_e = t_matrix[k, :, :] @ e
+            b2_vector[k, :] = t_e[0], t_e[1]
+
+        for c_index, c in enumerate(c_indices):
+            a2_matrix[np.size(edges, 0) + c_index, c] = weight
+            b2_vector[np.size(edges, 0) + c_index, :] = weight * c_vertices[c_index, :]
+
+        return np.linalg.lstsq(a2_matrix.T @ a2_matrix, a2_matrix.T @ b2_vector, rcond=None)[0]
+
 
 if __name__ == '__main__':
     from pwarp._io import read_wavefront
@@ -273,3 +316,4 @@ if __name__ == '__main__':
     )
 
     _t_matrix = StepTwo.compute_t_matrix(_edges, _g_product, _gi, _v_prime)
+    _v_2prime = StepTwo.compute_v_2prime(_edges, _r, _t_matrix, _selected, _locations)
