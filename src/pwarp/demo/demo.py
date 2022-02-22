@@ -1,4 +1,6 @@
+import os
 import sys
+import os.path as op
 
 import cv2
 
@@ -6,10 +8,55 @@ from pwarp import np, _io
 from pwarp.core import ops, dtype
 from pwarp.core.arap import StepOne, StepTwo
 from pwarp.demo import misc
+from pwarp.ui import draw
+from pwarp.logger import getLogger
+
+logger = getLogger("pwarp.demo.demo")
 
 
 class Demo(object):
-    def __init__(self, obj_path: str, window_name: str = 'ARAP'):
+    """
+    Puppet Warp Demo
+    ================
+
+    FAQ:
+
+        - Q: How to add control points?
+        - A: Click LMB on any top of the triangle.
+
+        - Q: How to exit application.
+        - A: Press Esc to quit.
+
+        - Q: How to save transformed mesh?
+        - A: Press Space Bar to save transformed mesh in wavefron format.
+
+        - Q: Where is output stored?
+        - A: The each saved output is by default stored in directory ~/pwarp.
+
+        - Q: Is it possible to configure output directory?
+        - A: Yes, you can change an output directory via initialization variable `output_dir`.
+
+    """
+    def __init__(
+            self,
+            obj_path: str,
+            window_name: str = 'ARAP',
+            screen_width: int = 1280,
+            screen_height: int = 800,
+            scale: int = -180,
+            output_dir: str = None
+    ):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.dx = dtype.INT(self.screen_width // 2)
+        self.dy = dtype.INT(self.screen_height // 2)
+        self.scale = dtype.INT(scale)
+
+        if output_dir is None:
+            output_dir = op.expanduser("~/pwarp")
+        self.output_dir = output_dir
+        os.makedirs(self.output_dir, exist_ok=True)
+
         self.start_select = False
         self.end_select = False
         self.start_move = False
@@ -20,7 +67,7 @@ class Demo(object):
         self.b_vector = np.nan
         self.moving_index_old = -1
         self.started = False
-        self.new_vertices = np.nan
+        self.new_vertices = np.array([])
 
         self.window_name = window_name
 
@@ -35,28 +82,12 @@ class Demo(object):
         self.vertices_move = np.zeros(self.num_vertices)
         self.vertices_select = np.zeros(self.num_vertices)
 
-        self.img = np.zeros((800, 1280, 3), np.uint8)
+        self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
         self._img = self.img.copy()
 
         # Compute initial transformation matrices
         self.gi, self.g_product = StepOne.compute_g_matrix(self.vertices, self.edges, self.faces)
         self.h = StepOne.compute_h_matrix(self.edges, self.g_product, self.gi, self.vertices)
-
-    @classmethod
-    def draw_mesh(cls, vertices, edges, img):
-        # Scaling so that it fits in the window for OpenCV coordinate system.
-        vertices_scaled = cls.inscreen_scale(vertices).astype(int)
-        for edge in edges:
-            start = (vertices_scaled[int(edge[0]), 0], vertices_scaled[int(edge[0]), 1])
-            end = (vertices_scaled[int(edge[1]), 0], vertices_scaled[int(edge[1]), 1])
-            cv2.line(img, start, end, (0, 255, 0), 1)
-
-    @staticmethod
-    def inscreen_scale(vertices: np.array):
-        vertices = vertices.copy()
-        vertices[:, 0] = vertices[:, 0] * -180 + 640
-        vertices[:, 1] = vertices[:, 1] * -180 + 400
-        return vertices
 
     @staticmethod
     def mouse_event_callback(event, *args):
@@ -96,9 +127,8 @@ class Demo(object):
                     else:
                         locations = self.new_vertices[selected, :]
 
-                    # TODO: make folowing hardcoded transformations to be dynamic
-                    a = (a - dtype.INT(640)) / dtype.INT(-180)
-                    b = (b - dtype.INT(400)) / dtype.INT(-180)
+                    a = (a - dtype.INT(self.dx)) / dtype.INT(self.scale)
+                    b = (b - dtype.INT(self.dy)) / dtype.INT(self.scale)
 
                     # Moving control index is index appliable to array `selected`.
                     moving_c_index = np.where(selected == self.moving_index)[0][0]
@@ -114,10 +144,10 @@ class Demo(object):
                     t_matrix = StepTwo.compute_t_matrix(self.edges, self.g_product, self.gi, new_vertices)
                     new_vertices = StepTwo.compute_v_2prime(self.edges, self.vertices, t_matrix, selected, locations)
                     self.new_vertices = new_vertices[:]
-                    self.draw_mesh(self.new_vertices, self.edges, self.img)
+                    draw.draw_mesh(self.new_vertices, self.edges, self.img, self.dx, self.dy, self.scale)
 
                     # Move control points in screen.
-                    c_scaled = self.inscreen_scale(new_vertices[selected]).astype(int)
+                    c_scaled = draw.shift_scale(new_vertices[selected], self.dx, self.dy, self.scale).astype(int)
                     [cv2.circle(self.img, (vertex[0], vertex[1]), 5, (0, 0, 255), 1) for vertex in c_scaled]
 
         elif event == cv2.EVENT_LBUTTONUP:
@@ -130,14 +160,27 @@ class Demo(object):
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.mouse_event_callback, param=self)
 
-        self.draw_mesh(self.vertices, self.edges, self.img)
+        draw.draw_mesh(self.vertices, self.edges, self.img, self.dx, self.dy, self.scale)
         try:
+            count = 0
             while True:
                 cv2.imshow(self.window_name, self.img)
-                # Press space bar to quit.
-                if cv2.waitKey(1) == 32:
+                # Press esc bar to quit.
+                key = cv2.waitKey(1)
+                if key == 27:
                     break
+                # Press space bar to save.
+                elif key == 32:
+                    if np.size(self.new_vertices, axis=0) == 0:
+                        continue
+
+                    path = op.join(self.output_dir, f'puppet_{count:03d}.obj')
+                    _io.save_wavefront(path, self.num_vertices, self.num_faces, self.new_vertices, self.faces)
+                    logger.info(f'object saved as {path}')
+                    count += 1
+
         except KeyboardInterrupt:
+            logger.info("quit")
             sys.exit(0)
         finally:
             cv2.destroyAllWindows()

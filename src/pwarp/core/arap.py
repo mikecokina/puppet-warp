@@ -267,7 +267,6 @@ class StepTwo(object):
         :return: np.ndarray;
         """
         # Prepare blueprints.
-        v_2prime = np.zeros((np.size(vertices, 0), 2))
         a2_matrix = np.zeros((np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)))
         b2_vector = np.zeros((np.size(edges, axis=0) + np.size(c_indices), 2))
 
@@ -289,31 +288,3 @@ class StepTwo(object):
             b2_vector[np.size(edges, 0) + c_index, :] = weight * c_vertices[c_index, :]
 
         return np.linalg.lstsq(a2_matrix.T @ a2_matrix, a2_matrix.T @ b2_vector, rcond=None)[0]
-
-
-if __name__ == '__main__':
-    from pwarp._io import read_wavefront
-
-    _nr, _nf, _r, _f = read_wavefront('../data/puppet.obj')
-    _edges = ops.get_edges(_nf, _f)
-    _edge = _edges[161]
-    _gi, _g_product = StepOne.compute_g_matrix(_r, _edges, _f)
-    _h_matrix = StepOne.compute_h_matrix(_edges, _g_product, _gi, _r)
-    _selected = np.array([1], dtype=dtype.INDEX)
-    _moving_index = 0
-
-    _locations = _r[_selected, :]
-    _a, _b = _r[_moving_index] + 0.01
-    _locations[_moving_index, :] = np.array([_a, _b], dtype=dtype.FLOAT)
-
-    _v_prime, _, _ = StepOne.compute_v_prime(
-        edges=_edges,
-        vertices=_r,
-        gi=_gi,
-        h_matrix=_h_matrix,
-        c_indices=_selected,
-        c_vertices=_locations
-    )
-
-    _t_matrix = StepTwo.compute_t_matrix(_edges, _g_product, _gi, _v_prime)
-    _v_2prime = StepTwo.compute_v_2prime(_edges, _r, _t_matrix, _selected, _locations)
