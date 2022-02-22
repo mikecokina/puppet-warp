@@ -15,6 +15,23 @@
 Puppet Warp
 -----------
 
+The goal of the package `puppet-warp` is provide plug and play solution for image
+transformation similar to Adobe Photoshop `Puppet Warp` tool. Since Photoshop
+solution is proprietary, hence any scripting might be a big issues especially in
+enviroments where Photoshop is not supported, we decided to create this package based
+on Python in which Puppet Warp is programmatically manageable and used in automatation
+processes where advaned transformation method is required.
+
+Installation
+~~~~~~~~~~~~
+TBD
+
+
+Usage
+~~~~~
+TBD
+
+
 References
 ----------
 
