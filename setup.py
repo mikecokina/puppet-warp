@@ -151,6 +151,7 @@ setup(
     package_data={
         'pwarp': [
             'data/*',
+            'conf/logging_schemas/*'
         ],
     },
 
