@@ -36,7 +36,7 @@ def read_wavefront(path: str):
 
 def save_wavefront(path: str, no_vertices: int, no_faces: int, vertices: np.ndarray, faces: np.ndarray):
     __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    faces += 1
+    faces = faces[:] + 1
     with open(path, 'w') as f:
         f.write("#vertices: " + str(no_vertices) + "\n")
         f.write("#faces: " + str(no_faces) + "\n")
