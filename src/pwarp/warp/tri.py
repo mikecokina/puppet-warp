@@ -101,3 +101,29 @@ def merge_transformed(
     for image, alpha in parts:
         base_image[alpha, :] = image[alpha, :]
     return base_image
+
+
+def graph_defined_warp(
+        image: np.ndarray,
+        vertices_src: np.ndarray,
+        faces_src: np.ndarray,
+        vertices_dst: np.ndarray,
+        faces_dst: np.ndarray,
+        use_scikit: Union[dtype.BOOL, bool]
+) -> np.ndarray:
+    """
+    Based on triangulated shape transformed from source to destination mesh
+    will provide transformation of image. The idea is to do an affine transformation
+    of each triangle in mesh. The affine transformation is definde for each triangle
+    separately and partial results are merged at the end of the process.
+    """
+    height, width = image.shape[:2]
+    base_image = np.ones((height, width, 3), dtype=np.uint8) * 255
+
+    for f_src, f_dst in zip(faces_src, faces_dst):
+        r_src, r_dst = vertices_src[f_src], vertices_dst[f_dst]
+        r_src, r_dst = np.expand_dims(r_src, axis=0), np.expand_dims(r_dst, axis=0)
+        warped, alpha = tri_warp(image, r_src, r_dst, use_scikit=use_scikit)
+        base_image[alpha, :] = warped[alpha, :]
+
+    return base_image
