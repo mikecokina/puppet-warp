@@ -12,12 +12,46 @@ __all__ = (
 )
 
 
+def _broadcast_transformed_tri(
+        dst: np.ndarray,
+        bbox: Tuple[int, int, int, int],
+        warped: np.ndarray,
+        mask: np.ndarray
+) -> np.ndarray:
+    """
+
+    :param dst:
+    :param bbox:
+    :param warped:
+    :param mask:
+    :return:
+    """
+    # Copy triangular region of the rectangular patch to the output image.
+    dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
+        dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] * ((1.0, 1.0, 1.0) - mask)
+
+    dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
+        dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] + warped
+
+    return dst
+
+
 def inbox_tri_warp(
         src: np.ndarray,
         tri_src: np.ndarray,
         tri_dst: np.ndarray,
         use_scikit: bool = True
 ) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]]:
+    """
+    Based on src triangle and dst trianglle in 2D will find affine transformation and return this
+    transformation in bounding box of destination triangle.
+
+    :param src: np.ndarray;
+    :param tri_src: np.ndarray;
+    :param tri_dst: np.ndarray;
+    :param use_scikit: bool;
+    :return: Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]];
+    """
     # Find bounding rectangle for each triangle
     bbox_src = cv2.boundingRect(tri_src)
     bbox_dst = cv2.boundingRect(tri_dst)
@@ -65,47 +99,15 @@ def tri_warp(
     :param use_scikit: bool;
     :return: np.ndarray; (transformed image within triangle, boolean mask for triangle visibility only)
     """
-    # Find bounding rectangle for each triangle
-    bbox_src = cv2.boundingRect(tri_src)
-    bbox_dst = cv2.boundingRect(tri_dst)
-
-    # Offset points by left top corner of the respective rectangles.
-    tri_src_cropped = tri_src[0, :, :] - bbox_src[:2]
-    tri_dst_cropped = tri_dst[0, :, :] - bbox_dst[:2]
-
-    # Crop input image.
-    src_cropped = src[bbox_src[1]:bbox_src[1] + bbox_src[3], bbox_src[0]:bbox_src[0] + bbox_src[2]]
-
-    # Given a pair of triangles, find the affine transform.
-    if use_scikit:
-        # Scikit based warp requires inverse approach to source/destination points.
-        scikit_warp_matrix = affine.affine_transformation(tri_dst_cropped, tri_src_cropped)
-        dst_cropped = affine.warp(src_cropped, scikit_warp_matrix, mode='edge', output_shape=(bbox_dst[3], bbox_dst[2]))
-    else:
-        cv2_warp_matrix = affine.affine_transformation(tri_src_cropped, tri_dst_cropped)[:2, :]
-        # Apply the Affine Transform  to the src image.
-        _kwargs = dict(flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
-        dst_cropped = cv2.warpAffine(src_cropped, cv2_warp_matrix, (bbox_dst[2], bbox_dst[3]), None, **_kwargs)
-
-    # Get mask by filling triangle.
-    mask = np.zeros((bbox_dst[3], bbox_dst[2], 3), dtype=dtype.UINT8)
-    cv2.fillConvexPoly(mask, dtype.INT32(tri_dst_cropped), (1, 1, 1), 16, 0)
-    dst_cropped *= mask
-
+    dst_cropped, mask, bbox_dst = inbox_tri_warp(src, tri_src, tri_dst, use_scikit)
     alpha = np.zeros(src.shape[:2], dtype=dtype.BOOL)
     alpha[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] = mask[:, :, 0]
 
     # Prepare destination array,
     # Output image is set to white
     dst = np.ones(src.shape, dtype=dtype.UINT8) * 255
-
-    # Copy triangular region of the rectangular patch to the output image.
-    dst[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] = \
-        dst[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] * ((1.0, 1.0, 1.0) - mask)
-
-    dst[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] = \
-        dst[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] + dst_cropped
-
+    # Broadcast pixels within base image.
+    dst = _broadcast_transformed_tri(dst, bbox_dst, dst_cropped, mask)
     return dst, alpha
 
 
@@ -170,10 +172,6 @@ def graph_defined_warp(
 
         # Put transformed data within base image based on alpha mask and bounding box of given destination face.
         # Copy triangular region of the rectangular patch to the output image.
-        base_image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
-            base_image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] * ((1.0, 1.0, 1.0) - alpha)
-
-        base_image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
-            base_image[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] + warped
+        base_image = _broadcast_transformed_tri(base_image, bbox, warped, alpha)
 
     return base_image
