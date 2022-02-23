@@ -1,15 +1,26 @@
-from typing import Union, List, Iterable, Tuple
+from typing import Union, Iterable, Tuple
 
 import cv2
 import numpy as np
 
 from pwarp.core import dtype
+from pwarp.warp import affine
+from pwarp.profiler import profileit
+
+__all__ = (
+    'graph_defined_warp',
+)
+
+
+def _broadcast_to_destination(dst: np.ndarray, mask: np.ndarray):
+    pass
 
 
 def tri_warp(
         src: np.ndarray,
         tri_src: np.ndarray,
-        tri_dst: np.ndarray
+        tri_dst: np.ndarray,
+        use_scikit: bool = True
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Based on src triangle and dst trianglle in 2D will find affine transformation
@@ -19,6 +30,7 @@ def tri_warp(
     :param src: np.ndarray;
     :param tri_src: np.ndarray;
     :param tri_dst: np.ndarray;
+    :param use_scikit: bool;
     :return: np.ndarray; (transformed image within triangle, boolean mask for triangle visibility only)
     """
     # Find bounding rectangle for each triangle
@@ -33,13 +45,15 @@ def tri_warp(
     src_cropped = src[bbox_src[1]:bbox_src[1] + bbox_src[3], bbox_src[0]:bbox_src[0] + bbox_src[2]]
 
     # Given a pair of triangles, find the affine transform.
-    # Warning: Following idiot requires float32.
-    fn = cv2.getAffineTransform
-    warp_matrix = fn(np.array(tri_src_cropped, dtype.FLOAT32), np.array(tri_dst_cropped, dtype.FLOAT32))
-
-    # Apply the Affine Transform  to the src image.
-    _kwargs = dict(flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    dst_cropped = cv2.warpAffine(src_cropped, warp_matrix, (bbox_dst[2], bbox_dst[3]), None, **_kwargs)
+    if use_scikit == "cv2":
+        # Scikit based warp requires inverse approach to source/destination points.
+        scikit_warp_matrix = affine.affine_transformation(tri_dst_cropped, tri_src_cropped)
+        dst_cropped = affine.warp(src_cropped, scikit_warp_matrix, mode='edge', output_shape=(bbox_dst[3], bbox_dst[2]))
+    else:
+        cv2_warp_matrix = affine.affine_transformation(tri_src_cropped, tri_dst_cropped)[:2, :]
+        # Apply the Affine Transform  to the src image.
+        _kwargs = dict(flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
+        dst_cropped = cv2.warpAffine(src_cropped, cv2_warp_matrix, (bbox_dst[2], bbox_dst[3]), None, **_kwargs)
 
     # Get mask by filling triangle.
     mask = np.zeros((bbox_dst[3], bbox_dst[2], 3), dtype=dtype.UINT8)
