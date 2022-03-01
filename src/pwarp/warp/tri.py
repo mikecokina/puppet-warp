@@ -5,7 +5,6 @@ import numpy as np
 
 from pwarp.core import dtype
 from pwarp.warp import affine
-from pwarp.profiler import profileit
 
 __all__ = (
     'graph_defined_warp',
@@ -19,12 +18,14 @@ def _broadcast_transformed_tri(
         mask: np.ndarray
 ) -> np.ndarray:
     """
+    Broadcast triangle transformed within bounding box in affine manner
+    into destination image of shape of original image.
 
-    :param dst:
-    :param bbox:
-    :param warped:
-    :param mask:
-    :return:
+    :param dst: np.ndarray;
+    :param bbox: Tuple[int, int, int, int]; (top_left_x, top_left_y, width, height)
+    :param warped: np.ndarray;
+    :param mask: np.ndarray;
+    :return: np.ndarray;
     """
     # Copy triangular region of the rectangular patch to the output image.
     dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
@@ -175,3 +176,77 @@ def graph_defined_warp(
         base_image = _broadcast_transformed_tri(base_image, bbox, warped, alpha)
 
     return base_image
+
+
+# if __name__ == '__main__':
+#     from pwarp import _io
+#     from pwarp.core import ops
+#     from pwarp.ui import draw
+#     from time import time
+#
+#     # Read input image
+#     imgIn = cv2.imread("puppet.png")
+#
+#     _nr_src, _nf_src, _r_src, _f_src = _io.read_wavefront('../data/puppet.obj')
+#     _edges_src = ops.get_edges(_nf_src, _f_src)
+#     _r_src = draw.shift_scale(_r_src, dx=300, dy=440, scale=-290).astype(np.int32)
+#
+#     # draw.draw_mesh(_r_src, _edges_src, imgIn, color=(0, 0, 255))
+#
+#     _nr_dst, _nf_dst, _r_dst, _f_dst = _io.read_wavefront('../data/puppet_000.obj')
+#     _edges_dst = ops.get_edges(_nf_dst, _f_dst)
+#     _r_dst = draw.shift_scale(_r_dst, dx=300, dy=440, scale=-290).astype(np.int32)
+#     # draw.draw_mesh(_r_dst, _edges_dst, imgIn, color=(255, 0, 0))
+#
+#     t = time()
+#     graph_defined_warp(imgIn, vertices_src=_r_src, faces_src=_f_src, vertices_dst=_r_dst, faces_dst=_f_dst)
+#     print(time() - t)
+#
+#     exit()
+#
+#     t = time()
+#     parts = []
+#
+#
+#     def do_tri():
+#         for _ in range(10):
+#             for _src_f, _dst_f in zip(_f_src, _f_dst):
+#                 _src_r, _dst_r = _r_src[_src_f], _r_dst[_dst_f]
+#                 _src_r, _dst_r = np.expand_dims(_src_r, axis=0), np.expand_dims(_dst_r, axis=0)
+#                 img = tri_warp(imgIn, _src_r, _dst_r, use_scikit=False)
+#                 parts.append(img)
+#
+#
+#     do_tri()
+#     print(time() - t)
+#
+#     h, w = imgIn.shape[:2]
+#
+#     t = time()
+#
+#
+#     def merge():
+#         imgOut = merge_transformed(parts, w, h)
+#         return imgOut
+#
+#
+#     imgOut = merge()
+#     print(time() - t)
+#     # exit()
+#     # # Warp all pixels inside input triangle to output triangle
+#     # imgOut, _ = tri_warp(imgIn, triIn, triOut)
+#     #
+#     # # Draw triangle using this color
+#     # color = (255, 150, 0)
+#     #
+#     # cv2.polylines(imgIn, triIn.astype(int), True, color, 2, 16)
+#     # cv2.polylines(imgOut, triOut.astype(int), True, color, 2, 16)
+#
+#     # # Draw triangles in input and output images.
+#     # cv2.polylines(imgIn, triIn.astype(int), True, color, 2, 16)
+#     # cv2.polylines(imgOut, triOut.astype(int), True, color, 2, 16)
+#
+#     cv2.imshow("Input", imgIn)
+#     cv2.imshow("Output", imgOut)
+#
+#     cv2.waitKey(0)

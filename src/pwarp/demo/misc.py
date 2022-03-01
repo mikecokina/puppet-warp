@@ -2,10 +2,7 @@ from pwarp import np
 
 
 def is_close(x, y, vertices, _tol=4):
-    vertices_scaled = vertices.copy()
-    vertices_scaled[:, 0] = vertices[:, 0] * -180 + 640
-    vertices_scaled[:, 1] = vertices[:, 1] * -180 + 400
-    vertices_scaled = vertices_scaled.astype(int)
+    vertices_scaled = vertices.copy().astype(int)
     close, index = False, -1
 
     for i in range(x - _tol, x + _tol):

@@ -10,6 +10,7 @@ from pwarp.core.arap import StepOne, StepTwo
 from pwarp.demo import misc
 from pwarp.ui import draw
 from pwarp.logger import getLogger
+from pwarp.warp import tri
 
 logger = getLogger("pwarp.demo.demo")
 
@@ -43,20 +44,34 @@ class Demo(object):
             window_name: str = 'ARAP',
             screen_width: int = 1280,
             screen_height: int = 800,
-            scale: int = -180,
-            output_dir: str = None
+            scale: int = -200,
+            output_dir: str = None,
+            image: str = None
     ):
+        # Screen dimensions.
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.dx = dtype.INT(self.screen_width // 2)
         self.dy = dtype.INT(self.screen_height // 2)
         self.scale = dtype.INT(scale)
 
+        # Background image preps.
+        image = '../data/puppet.png'
+        if image is not None:
+            if not op.isfile(image):
+                raise FileNotFoundError(f"No image file {image}")
+            self.image = cv2.imread(image)
+
+        self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
+        self.img = self.image
+        self._img = self.img.copy()
+
         if output_dir is None:
             output_dir = op.expanduser("~/pwarp")
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
+        # Default attributes.
         self.start_select = False
         self.end_select = False
         self.start_move = False
@@ -68,7 +83,6 @@ class Demo(object):
         self.moving_index_old = -1
         self.started = False
         self.new_vertices = np.array([])
-
         self.window_name = window_name
 
         # Load wavefront object.
@@ -78,16 +92,21 @@ class Demo(object):
         self.vertices = vertices
         self.faces = faces
         self.edges = ops.get_edges(num_faces, faces)
-
         self.vertices_move = np.zeros(self.num_vertices)
         self.vertices_select = np.zeros(self.num_vertices)
 
-        self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
-        self._img = self.img.copy()
+        # Original vertices transformed to image dimensions.
+        self.vertices_t = self.shift_and_scale(self.vertices)
 
-        # Compute initial transformation matrices
+        # Compute initial transformation matrices.
         self.gi, self.g_product = StepOne.compute_g_matrix(self.vertices, self.edges, self.faces)
         self.h = StepOne.compute_h_matrix(self.edges, self.g_product, self.gi, self.vertices)
+
+    def shift_and_scale(self, vertices):
+        vertices = vertices.copy()
+        vertices[:, 0] = vertices[:, 0] * self.scale + self.dx
+        vertices[:, 1] = vertices[:, 1] * self.scale + self.dy
+        return vertices.astype(int)
 
     @staticmethod
     def mouse_event_callback(event, *args):
@@ -95,10 +114,10 @@ class Demo(object):
         self: Demo = param
 
         if event == cv2.EVENT_LBUTTONDOWN:
-            is_close, index = misc.is_close(x, y, self.vertices)
+            is_close, index = misc.is_close(x, y, self.shift_and_scale(self.vertices))
 
             if self.started:
-                is_close, index = misc.is_close(x, y, self.new_vertices)
+                is_close, index = misc.is_close(x, y, self.shift_and_scale(self.new_vertices))
 
             if is_close:
                 # Mark vertex as control point.
@@ -144,11 +163,14 @@ class Demo(object):
                     t_matrix = StepTwo.compute_t_matrix(self.edges, self.g_product, self.gi, new_vertices)
                     new_vertices = StepTwo.compute_v_2prime(self.edges, self.vertices, t_matrix, selected, locations)
                     self.new_vertices = new_vertices[:]
-                    draw.draw_mesh(self.new_vertices, self.edges, self.img, self.dx, self.dy, self.scale)
+
+                    new_vertices_t = self.shift_and_scale(new_vertices)
+                    self.img = tri.graph_defined_warp(self.img, self.vertices_t, self.faces, new_vertices_t, self.faces)
+                    draw.draw_mesh(self.shift_and_scale(self.new_vertices), self.edges, self.img)
 
                     # Move control points in screen.
-                    c_scaled = draw.shift_scale(new_vertices[selected], self.dx, self.dy, self.scale).astype(int)
-                    [cv2.circle(self.img, (vertex[0], vertex[1]), 5, (0, 0, 255), 1) for vertex in c_scaled]
+                    [cv2.circle(self.img, (vertex[0], vertex[1]), 5, (0, 0, 255), 1)
+                     for vertex in new_vertices_t[selected]]
 
         elif event == cv2.EVENT_LBUTTONUP:
             if self.vertices_move[self.moving_index] == 1:
@@ -160,7 +182,7 @@ class Demo(object):
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.mouse_event_callback, param=self)
 
-        draw.draw_mesh(self.vertices, self.edges, self.img, self.dx, self.dy, self.scale)
+        draw.draw_mesh(self.vertices_t, self.edges, self.img)
         try:
             count = 0
             while True:

@@ -8,6 +8,7 @@ def profileit(func):
         prof = cProfile.Profile()
         retval = prof.runcall(func, *args, **kwargs)
         print(prof.print_stats())
+        # prof.dump_stats("profile.profile")
         return retval
 
     return wrapper
