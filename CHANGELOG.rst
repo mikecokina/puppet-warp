@@ -17,3 +17,4 @@ v0.0.0.dev0_
 
     - Implementiion As-Rigid-As-Possible Shape Manipulation based on paper Takeo_Igarashi_2009_
     - Implementation of Demo based on script ARAPShapeManipulation_ by `deliagander`
+    - Implementation of image transformation based on transformation of triangular mesh over image.

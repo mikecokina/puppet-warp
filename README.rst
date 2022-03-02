@@ -22,6 +22,12 @@ enviroments where Photoshop is not supported, we decided to create this package 
 on Python in which Puppet Warp is programmatically manageable and used in automatation
 processes where advaned transformation method is required.
 
+Features
+--------
+
+- As-Rigid-as-Possible Shape Manipulation of triangular mesh
+- Image transfer from triangualar mesh at rest to mesh defined by ARAP transformation
+
 Installation
 ~~~~~~~~~~~~
 TBD
