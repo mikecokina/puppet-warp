@@ -14,9 +14,11 @@ def find_ijlr_vertices(edge: np.ndarray, faces: np.ndarray):
 
     Source: Igarashi et al., 2009
 
-    l x--------x j
-            // edge
-        i x-------x r
+    ::
+
+        l x--------x j
+                // edge
+            i x-------x r
 
     Find indices of vertex l and r. When edge i-j is situated at the edge of graph,
     than use only vertex l and r will be set as np.nan.

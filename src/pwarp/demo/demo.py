@@ -18,7 +18,6 @@ logger = getLogger("pwarp.demo.demo")
 class Demo(object):
     """
     Puppet Warp Demo
-    ================
 
     FAQ:
 
@@ -36,7 +35,6 @@ class Demo(object):
 
         - Q: Is it possible to configure output directory?
         - A: Yes, you can change an output directory via initialization variable `output_dir`.
-
     """
     def __init__(
             self,
