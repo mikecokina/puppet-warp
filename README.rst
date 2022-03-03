@@ -48,7 +48,6 @@ Example:
 .. code-block:: python
 
     from pwarp import get_default_puppet
-    from matplotlib import pyplot as plt
 
     control_pts = np.array([22, 50, 94, 106], dtype=int)
     shift = np.array(
@@ -72,8 +71,6 @@ Example:
   :align: center
 
 
-
-
 Graph defined warp
 ==================
 
@@ -83,6 +80,67 @@ both sets have to be same, so in other words, source and destination faces must 
 triangle is transformed via affine transformation defined by source to destination face.
 
 Example:
+
+.. code-block:: python
+
+    from pwarp import get_default_puppet
+    from matplotlib import pyplot as plt
+
+    control_pts = np.array([22, 50, 94, 106], dtype=int)
+    shift = np.array(
+        [[0.555, - 0.905],
+         [-0.965, - 0.875],
+         [-0.950, 0.460],
+         [0.705, 0.285]], dtype=float
+    )
+    puppet = get_default_puppet()
+    new_r = graph_warp(
+        vertices=puppet.r,
+        faces=puppet.f,
+        control_indices=control_pts,
+        shifted_locations=shift
+    )
+
+    image = cv2.cvtColor(cv2.imread("../data/puppet.png"), cv2.COLOR_BGR2RGB)
+    width, height = 1280, 800
+    dx, dy = dtype.INT32(width // 2), dtype.INT32(height // 2)
+    scale_x, scale_y = 200, -200
+    r = puppet.r.copy()
+    r[:, 0] = r[:, 0] * scale_x + dx
+    r[:, 1] = r[:, 1] * scale_y + dy
+
+    new_r[:, 0] = new_r[:, 0] * scale_x + dx
+    new_r[:, 1] = new_r[:, 1] * scale_y + dy
+
+    image_t = graph_defined_warp(
+        image,
+        vertices_src=r,
+        faces_src=puppet.f,
+        vertices_dst=new_r,
+        faces_dst=puppet.f
+    )
+
+    fig, axs = plt.subplots(1, 2, frameon=False)
+    plt.tight_layout(pad=0)
+
+    axs[0].imshow(image)
+    axs[1].imshow(image_t)
+    axs[0].triplot(r.T[0], r.T[1], puppet.f, lw=0.5)
+    axs[1].triplot(new_r.T[0], new_r.T[1], puppet.f, lw=0.5)
+
+    for ax in axs:
+        ax.set_xlim([380, 900])
+        ax.set_ylim([150, 750])
+        ax.invert_yaxis()
+        ax.axis('off')
+    plt.show()
+
+
+.. figure:: ./docs/source/_static/readme/graph_def_t.png
+  :width: 70%
+  :alt: mesh
+  :align: center
+
 
 Triangular mesh
 ===============
