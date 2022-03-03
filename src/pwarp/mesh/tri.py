@@ -6,6 +6,11 @@ from pwarp import np
 from pwarp.core import dtype
 
 
+__all__ = (
+    'triangular_mesh',
+)
+
+
 def triangular_mesh(
         width: Union[int, dtype.INT32],
         height: Union[int, dtype.INT32],
