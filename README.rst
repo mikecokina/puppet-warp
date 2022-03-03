@@ -35,8 +35,77 @@ TBD
 
 Usage
 ~~~~~
-TBD
 
+Graph warp
+==========
+
+The graph warp requires vertices and faces (triangulation), control points and new displacement of
+control points. Based on the given informations, graph transform compute new positions of supplied
+vertices.
+
+Example:
+
+.. code-block:: python
+
+    from pwarp import get_default_puppet
+    from matplotlib import pyplot as plt
+
+    control_pts = np.array([22, 50, 94, 106], dtype=int)
+    shift = np.array(
+        [[0.555, -0.905],
+         [-0.965, -0.875],
+         [-0.950, 0.460],
+         [0.705, 0.285]], dtype=float
+    )
+    puppet = get_default_puppet()
+    new_vertices = graph_warp(
+        vertices=puppet.r,
+        faces=puppet.f,
+        control_indices=control_pts,
+        shifted_locations=shift
+    )
+
+
+.. figure:: ./docs/source/_static/readme/graph_t.png
+  :width: 70%
+  :alt: mesh
+  :align: center
+
+
+
+
+Graph defined warp
+==================
+
+The graph defiend warp will transform areas of image covered by source vertices to given destination vertices.
+An algorithm requires image, source and destination vertices, and faces for both. An order of faces (triangles) in
+both sets have to be same, so in other words, source and destination faces must form pairs. A pixel in each
+triangle is transformed via affine transformation defined by source to destination face.
+
+Example:
+
+Triangular mesh
+===============
+
+The algorithm is intended to generate a triangular mesh within rectangle defined by its width and height.
+The density of the mesh is adjustable via `delta` parameter. Algorithms is based on generation of frame. Frame
+is defined by vertices where distance between each two vertices is defined by mentioned delta parameter.
+The area of frame generated in such manner is triangulated.
+
+Following example will generate mesh within rectangle of dimensions W x H = 1000 x 800 pixels.
+
+Example:
+
+.. code-block:: python
+
+    from pwarp import triangular_mesh
+    r, f = triangular_mesh(width=1000, height=800, delta=100)
+
+
+.. figure:: ./docs/source/_static/readme/mesh.png
+  :width: 40%
+  :alt: mesh
+  :align: center
 
 References
 ----------
@@ -46,6 +115,8 @@ References
 [1] https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
 [2] https://github.com/deliagander/ARAPShapeManipulation.git
 [3] https://learnopencv.com/warp-one-triangle-to-another-using-opencv-c-python/
+[4] https://rufat.be/triangle/
+[5] http://www.cs.cmu.edu/~quake/triangle.html
 
 
 Cite:
