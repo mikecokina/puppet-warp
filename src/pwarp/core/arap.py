@@ -215,7 +215,7 @@ class StepTwo(object):
         :param v_prime: np.ndarray; transformed point in sense of rotation from step one
         :return: np.ndarray;
         """
-        t_matrix = np.zeros(((np.size(edges, axis=0)), 2, 2,))
+        t_matrix = np.zeros(((np.size(edges, axis=0)), 2, 2,), dtype=dtype.FLOAT)
 
         # We compute T′k for each edge.
         for k, edge in enumerate(edges):
@@ -272,8 +272,9 @@ class StepTwo(object):
         :return: np.ndarray;
         """
         # Prepare blueprints.
-        a2_matrix = np.zeros((np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)))
-        b2_vector = np.zeros((np.size(edges, axis=0) + np.size(c_indices), 2))
+        a2_matrix = np.zeros((np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)),
+                             dtype=dtype.FLOAT)
+        b2_vector = np.zeros((np.size(edges, axis=0) + np.size(c_indices), 2), dtype=dtype.FLOAT)
 
         # Update values from precomputed components.
         # Matrix A2 is identical for both x- and y- components.
@@ -281,8 +282,8 @@ class StepTwo(object):
             # The values are set due to optimization equation from paper, where
             # arg min {sum_{i,j}||(v_j'' - v_i'')  ... ||} what gives 1 to position
             # of edge 0 and -1 to position of edge 1 and finally we will obtain (v_j'' - v_i'').
-            a2_matrix[k, int(edge[0])] = -1.
-            a2_matrix[k, int(edge[1])] = 1.
+            a2_matrix[k, int(edge[0])] = dtype.FLOAT(-1.)
+            a2_matrix[k, int(edge[1])] = dtype.FLOAT(1.)
 
             e = np.subtract(*vertices[edge[::-1]])
             t_e = t_matrix[k, :, :] @ e
