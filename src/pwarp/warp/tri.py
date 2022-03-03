@@ -3,11 +3,13 @@ from typing import Union, Iterable, Tuple
 import cv2
 import numpy as np
 
-from pwarp.core import dtype
+from pwarp.core import dtype, ops
+from pwarp.core.arap import StepOne, StepTwo
 from pwarp.warp import affine
 
 __all__ = (
     'graph_defined_warp',
+    'graph_warp',
 )
 
 
@@ -178,7 +180,91 @@ def graph_defined_warp(
     return base_image
 
 
+def graph_warp(
+        vertices: np.ndarray,
+        faces: np.ndarray,
+        control_indices: np.ndarray,
+        shifted_locations: np.ndarray,
+        edges: np.ndarray = None,
+        precomputed: Tuple[np.ndarray, np.ndarray, np.ndarray] = None
+) -> np.ndarray:
+    """
+    Transform in ARAP manner graph defined by faces and vertices. The given graph will be transformed
+    based on location of defined by shifted_locations. New location defined by shifted_locations
+    correspond to original vertices via variable control_indices.
+
+    Example::
+
+        control_indices = np.array([22, 50, 94, 106], dtype=int)
+        shifted_locations = np.array(
+            [[0.555, -0.905],
+             [-0.965, -0.875],
+             [-0.950, 0.460],
+             [0.705, 0.285]], dtype=float
+        )
+
+    :param vertices: np.ndarray; vertices
+    :param faces: np.ndarray; faces
+    :param control_indices: np.ndarray; indices of vertices in graph selected for transformation
+    :param shifted_locations: np.ndarray; new location of control vertices
+    :param edges: np.ndarray; set of edges defined by faces or None
+    :param precomputed: Tuple[np.ndarray, np.ndarray, np.ndarray]; [gi, g_product, h] or None
+    :return: np.ndarray; transformed vertices
+    """
+    if edges is None:
+        edges = ops.get_edges(len(faces), faces)
+
+    if precomputed is None:
+        # Compute transformation matrices in case when not supplied.
+        gi, g_product = StepOne.compute_g_matrix(vertices, edges, faces)
+        h = StepOne.compute_h_matrix(edges, g_product, gi, vertices)
+    else:
+        gi, g_product, h = precomputed
+
+    # Compute v' from paper.
+    args = edges, vertices, gi, h, control_indices, shifted_locations
+    new_vertices, _, _ = StepOne.compute_v_prime(*args)
+
+    # Compute v'' from paper.
+    t_matrix = StepTwo.compute_t_matrix(edges, g_product, gi, new_vertices)
+    new_vertices = StepTwo.compute_v_2prime(edges, vertices, t_matrix, control_indices, shifted_locations)
+
+    return new_vertices
+
+
 # if __name__ == '__main__':
+#     from pwarp import get_default_puppet
+#     from matplotlib import pyplot as plt
+#
+#     control_pts = np.array([22, 50, 94, 106], dtype=int)
+#     shift = np.array(
+#         [[0.555, - 0.905],
+#          [-0.965, - 0.875],
+#          [-0.950, 0.460],
+#          [0.705, 0.285]], dtype=float
+#     )
+#     puppet = get_default_puppet()
+#     new_vertices = graph_warp(
+#         vertices=puppet.r,
+#         faces=puppet.f,
+#         control_indices=control_pts,
+#         shifted_locations=shift
+#     )
+#
+#     fig, ax = plt.subplots(1, 2, frameon=False)
+#     plt.tight_layout(pad=0)
+#
+#     ax[0].triplot(puppet.r.T[0], puppet.r.T[1], puppet.f)
+#     ax[1].triplot(new_vertices.T[0], new_vertices.T[1], puppet.f)
+#
+#     for _ax in ax:
+#         _ax.set_aspect('equal')
+#         _ax.set_xlim([-1.2, 1.2])
+#         _ax.set_ylim([-1.2, 1.2])
+#         _ax.axis('off')
+#     # plt.savefig("graph_transform.png", format='png', dpi=100)
+#     plt.show()
+
 #     from pwarp import _io
 #     from pwarp.core import ops
 #     from pwarp.ui import draw
