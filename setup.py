@@ -13,7 +13,7 @@ Pre-release steps
 
     - `version.py` in function `get_version()`
     - `README.rst` in yellow version badge https://img.shields.io/badge/version-<VERSION>-yellow.svg
-    - in `src/elisa/__init__.py`, variable `__version__`
+    - in `src/pwarp/__init__.py`, variable `__version__`
 
 3.  make sure that `CHANGELOG.rst` is up to date; content as well as release date and valid version
 

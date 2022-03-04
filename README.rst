@@ -1,6 +1,6 @@
-|GitHub version|  |Licence GPLv3| |Python version| |OS|
+|GitHub version| |Licence GPLv3| |Python version| |OS|
 
-.. |GitHub version| image:: https://img.shields.io/badge/version-0.0.0.dev0-yellow.svg
+.. |GitHub version| image:: https://img.shields.io/badge/version-0.1-yellow.svg
    :target: https://github.com/Naereen/StrapDown.js
 
 .. |Python version| image:: https://img.shields.io/badge/python-3.7|3.8|3.9-orange.svg
@@ -28,10 +28,28 @@ Features
 - As-Rigid-as-Possible Shape Manipulation of triangular mesh
 - Image transfer from triangualar mesh at rest to mesh defined by ARAP transformation
 
+Requirements
+------------
+
+::
+
+    numpy==1.21.5
+    opencv-contrib-python==4.5.4.60
+    opencv-python==4.5.4.60
+    scikit-image==0.19.2
+    scikit-learn==1.0.2
+    triangle==20220202
+
+
+:note: Package will most likely work also with **opencv v3**, but never tested.
+
+
 Installation
 ~~~~~~~~~~~~
-TBD
 
+::
+
+    pip install puppet-warp
 
 Usage
 ~~~~~
@@ -184,7 +202,7 @@ Following example will generate mesh within rectangle of dimensions W x H = 1000
   :alt: mesh
   :align: center
 
-**Example on triangular mesh:**
+**Example on full screen triangular mesh warp:**
 
 
 .. figure:: ./docs/source/_static/readme/full_graph_def_t.png
