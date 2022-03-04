@@ -8,8 +8,7 @@ import cv2
 from pwarp import np, _io
 from pwarp.core import ops, dtype
 from pwarp.core.arap import StepOne, StepTwo
-from pwarp.demo import misc
-from pwarp.ui import draw
+from pwarp.demo import misc, draw
 from pwarp.logger import getLogger
 from pwarp.warp import warp
 
