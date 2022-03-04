@@ -15,9 +15,9 @@ __all__ = (
 
 def _broadcast_transformed_tri(
         dst: np.ndarray,
-        bbox: Tuple[int, int, int, int],
+        bbox: Union[Tuple[int, int, int, int], np.ndarray],
         warped: np.ndarray,
-        mask: np.ndarray
+        mask: np.ndarray,
 ) -> np.ndarray:
     """
     Broadcast triangle transformed within bounding box in affine manner
@@ -30,12 +30,12 @@ def _broadcast_transformed_tri(
     :return: np.ndarray;
     """
     # Copy triangular region of the rectangular patch to the output image.
+    mask = ((1.0, 1.0, 1.0) - mask)
     dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
-        dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] * ((1.0, 1.0, 1.0) - mask)
+        dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] * mask
 
     dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] = \
         dst[bbox[1]:bbox[1] + bbox[3], bbox[0]:bbox[0] + bbox[2]] + warped
-
     return dst
 
 
@@ -140,6 +140,78 @@ def merge_transformed(
     return base_image
 
 
+def _crop_to_origin(
+        image: np.ndarray,
+        bbox: Tuple[int, int, int, int],
+        origin_w: Union[int, dtype.INT],
+        origin_h: Union[int, dtype.INT],
+) -> np.ndarray:
+    """
+    Some traget vertices of transformed mesh might be outside of original iamge boundaries.
+    To avoid invalid behaviour, affine transformation of each triangle is running on enlarged image.
+    The enlargement is done by bounding box of vertices. (In case transformation mesh is smaller,
+    then bounding box is smaller as well). In this function, enlarged (shrinked in case of smaller mesh)
+    has to be broadcasted (cropped) to original image size.
+
+    :param image: np.ndarray;
+    :param origin_w: Union[int, dtype.INT];
+    :param origin_h: Union[int, dtype.INT];
+    :return: np.ndarray;
+    """
+    dx, dy, bbox_w, bbox_h = bbox
+    # Create base white image.
+    base_image = np.ones((origin_h, origin_w, 3), dtype=dtype.UINT8) * 255
+    slicer = np.zeros((2, 4), dtype=dtype.INT32)
+    deltas, shape, bbox_shape = (dx, dy), (origin_w, origin_h), (bbox_w, bbox_h)
+
+    for idx, meta in enumerate(zip(deltas, shape, bbox_shape)):
+        delta, origin_s, bbox_s = meta
+
+        xrange = min([origin_s - 1, bbox_s])
+        if delta < 0:
+            # If top left corner of graph is left/top from original image.
+            src_from, dst_from = abs(delta), 0
+
+            # If top/left of graph is out of the original image range, then if right side of graph is within image
+            # we need to truncate destination broadcast to the end of graph.
+            # As show bellow, we need to broadcast from x to y, so we ahve to truncate (|x,y| = xrange)
+            #
+            #                img B (original)
+            #   img A     ,------------
+            #   ----------x---y       |
+            #   |         |   |       |
+            #   --------------'       |
+            #             '------------
+            #
+            if bbox_s + delta < origin_s:
+                xrange = bbox_s + delta
+        else:
+            src_from, dst_from = 0, delta
+
+        src_to, dst_to = src_from + xrange, dst_from + xrange
+
+        # If slice destination slice is out of range of original image shape.
+        # We have to solve case when destination slice is to position `y'`, hence we have to
+        # truncate `destination to` and `source_to` coordinates up to `y`.
+        #        B
+        # [0,0] ------------,  A
+        #      |       x---y--y'
+        #      |       |   |  |
+        #      |       --------
+        #       ------------`
+        #
+        if dst_to > origin_s:
+            dst_to -= (abs(origin_s - dst_to) + 1)
+        if abs(dst_from - dst_to) < abs(src_from - src_to):
+            src_to -= abs(abs(dst_from - dst_to) - abs(src_from - src_to))
+
+        slicer[idx, :] = [src_from, src_to, dst_from, dst_to]
+
+    base_image[slicer[1][2]: slicer[1][3], slicer[0][2]: slicer[0][3]] = \
+        image[slicer[1][0]: slicer[1][1], slicer[0][0]: slicer[0][1]]
+    return base_image
+
+
 def graph_defined_warp(
         image: np.ndarray,
         vertices_src: np.ndarray,
@@ -162,8 +234,17 @@ def graph_defined_warp(
     :param use_scikit: bool;
     :return: np.ndarray;
     """
-    # Create base white image.
-    base_image = np.ones(image.shape, dtype=dtype.UINT8) * 255
+    # Create white image of shape of vertices bonding box.
+    # This is necessary to handle warps formed by vertices when some
+    # of them might be out of the boundaries of original image.
+    height, width = image.shape[:2]
+    dx, dy, bbox_w, bbox_h = cv2.boundingRect(vertices_dst)
+
+    # If entire graph is out of the box.
+    if (dx >= width or dy >= height) or (dx < -bbox_w or dy < -bbox_h):
+        return np.ones((height, width, 3), dtype=dtype.UINT8) * 255
+
+    bbox_base_image = np.ones((bbox_h, bbox_w, 3), dtype=dtype.UINT8) * 255
 
     # Iterate over all faces.
     for f_src, f_dst in zip(faces_src, faces_dst):
@@ -172,10 +253,16 @@ def graph_defined_warp(
         r_src, r_dst = np.array([r_src], dtype=r_src.dtype), np.array([r_dst], dtype=r_dst.dtype)
         # Transform given triangles pair in affine manner.
         warped, alpha, bbox = inbox_tri_warp(image, r_src, r_dst, use_scikit=use_scikit)
+        # Adjust bounding box to match position within bbox base image.
+        bbox = np.asarray(bbox, dtype=dtype.INT32)
+        bbox[:2] -= [dx, dy]
 
         # Put transformed data within base image based on alpha mask and bounding box of given destination face.
         # Copy triangular region of the rectangular patch to the output image.
-        base_image = _broadcast_transformed_tri(base_image, bbox, warped, alpha)
+        bbox_base_image = _broadcast_transformed_tri(bbox_base_image, bbox, warped, alpha)
+
+    # Broadcast proper part of transformed bbox image to iamge of original shape.
+    base_image = _crop_to_origin(bbox_base_image, (dx, dy, bbox_w, bbox_h), width, height)
 
     return base_image
 

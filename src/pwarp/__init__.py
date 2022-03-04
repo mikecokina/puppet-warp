@@ -3,7 +3,7 @@ import os.path as op
 from pwarp._np import np
 from pwarp.conf import initialize_logger
 from pwarp.data.puppet import PuppetObject
-from pwarp.warp.tri import graph_defined_warp, graph_warp
+from pwarp.warp.warp import graph_defined_warp, graph_warp
 from pwarp.mesh.tri import triangular_mesh
 from pwarp.core.arap import StepOne as ARAPStepOne, StepTwo as ARAPStepTwo
 from pwarp import _io
