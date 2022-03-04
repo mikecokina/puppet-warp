@@ -36,6 +36,25 @@ TBD
 Usage
 ~~~~~
 
+Demo
+====
+
+The packge puppet-warp is comming with live demo. To open lived demo, use following code.
+
+.. code-block:: python
+
+    from pwarp import Demo
+    Demo().run()
+
+
+To be able manipulate with image, select control points by clicking on vertices in
+image (connections of edges). When points are chosen, take single points by cursor
+and drag the point wherever you like.
+
+Demo comes with capability to store transformed mesh. To save the mesh, hit **Space Bar**.
+To quit demo, hit **Esc** button.
+
+
 Graph warp
 ==========
 

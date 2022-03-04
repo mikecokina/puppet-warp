@@ -7,6 +7,7 @@ from pwarp.warp.warp import graph_defined_warp, graph_warp
 from pwarp.mesh.tri import triangular_mesh
 from pwarp.core.arap import StepOne as ARAPStepOne, StepTwo as ARAPStepTwo
 from pwarp import _io
+from pwarp.demo.demo import Demo
 
 
 __all__ = (
@@ -20,6 +21,7 @@ __all__ = (
     'ARAPStepTwo',
     'PuppetObject',
     'get_default_puppet',
+    'Demo'
 )
 
 

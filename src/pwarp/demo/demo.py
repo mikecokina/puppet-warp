@@ -39,7 +39,7 @@ class Demo(object):
     """
     def __init__(
             self,
-            obj_path: str,
+            obj_path: str = op.join(op.dirname(__file__), '..', 'data', 'puppet.obj'),
             window_name: str = 'ARAP',
             screen_width: int = 1280,
             screen_height: int = 800,
@@ -47,7 +47,7 @@ class Demo(object):
             dx: int = None,
             dy: int = None,
             output_dir: str = None,
-            image: Union[str, None] = '../data/puppet.png'
+            image: Union[str, None] = op.join(op.dirname(__file__), '..', 'data', 'puppet.png'),
     ):
         # Screen dimensions.
         self.screen_width = screen_width
@@ -211,6 +211,4 @@ class Demo(object):
 
 
 if __name__ == '__main__':
-    puppet_path = '../data/puppet.obj'
-    ui = Demo(puppet_path)
-    ui.run()
+    Demo().run()
