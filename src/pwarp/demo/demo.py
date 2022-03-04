@@ -1,6 +1,7 @@
 import os
 import sys
 import os.path as op
+from typing import Union
 
 import cv2
 
@@ -10,7 +11,7 @@ from pwarp.core.arap import StepOne, StepTwo
 from pwarp.demo import misc
 from pwarp.ui import draw
 from pwarp.logger import getLogger
-from pwarp.warp import tri
+from pwarp.warp import warp
 
 logger = getLogger("pwarp.demo.demo")
 
@@ -43,25 +44,26 @@ class Demo(object):
             screen_width: int = 1280,
             screen_height: int = 800,
             scale: int = -200,
+            dx: int = None,
+            dy: int = None,
             output_dir: str = None,
-            image: str = None
+            image: Union[str, None] = '../data/puppet.png'
     ):
         # Screen dimensions.
         self.screen_width = screen_width
         self.screen_height = screen_height
-        self.dx = dtype.INT(self.screen_width // 2)
-        self.dy = dtype.INT(self.screen_height // 2)
+        self.dx = dtype.INT(self.screen_width // 2) if dx is None else dx
+        self.dy = dtype.INT(self.screen_height // 2) if dy is None else dy
         self.scale = dtype.INT(scale)
 
         # Background image preps.
-        image = '../data/puppet.png'
+        self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
+        self.transform_image = False
         if image is not None:
             if not op.isfile(image):
                 raise FileNotFoundError(f"No image file {image}")
-            self.image = cv2.imread(image)
-
-        self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
-        self.img = self.image
+            self.img = cv2.imread(image)
+            self.transform_image = True
         self._img = self.img.copy()
 
         if output_dir is None:
@@ -163,7 +165,9 @@ class Demo(object):
                     self.new_vertices = new_vertices[:]
 
                     new_vertices_t = self.shift_and_scale(new_vertices)
-                    self.img = tri.graph_defined_warp(self.img, self.vertices_t, self.faces, new_vertices_t, self.faces)
+                    if self.transform_image:
+                        self.img = warp.graph_defined_warp(
+                            self.img, self.vertices_t, self.faces, new_vertices_t, self.faces)
                     draw.draw_mesh(self.shift_and_scale(self.new_vertices), self.edges, self.img)
 
                     # Move control points in screen.
