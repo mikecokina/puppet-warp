@@ -2,9 +2,9 @@ Change Log
 ==========
 |
 
-v0.0.0.dev0_
-------------
-.. v0.0.0.dev0_: https://github.com/mikecokina/puppet-warp/commits/release/0.0.0
+v0.1.dev0_
+----------
+.. v0.1.dev0_: https://github.com/mikecokina/puppet-warp/tree/release/0.1
 .. _Takeo_Igarashi_2009: https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
 .. _ARAPShapeManipulation: https://github.com/deliagander/ARAPShapeManipulation.git
 
