@@ -1,2 +1,9 @@
+numpy==1.21.5
+opencv-contrib-python==4.5.4.60
+opencv-python==4.5.4.60
+scikit-image==0.19.2
+scikit-learn==1.0.2
+triangle==20220202
+
 Sphinx==4.4.0
 sphinx-rtd-theme==1.0.0
