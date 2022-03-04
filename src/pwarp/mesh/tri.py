@@ -48,9 +48,3 @@ def triangular_mesh(
     t = triangle.triangulate({"vertices": frame}, f'a{area}q30')
 
     return t['vertices'].astype(dtype.INT32), t['triangles'].astype(dtype.INT32)
-
-
-if __name__ == '__main__':
-    from pwarp.render import triplot_2d
-    r, f = triangular_mesh(width=1000, height=800, delta=100)
-    triplot_2d(r, f)

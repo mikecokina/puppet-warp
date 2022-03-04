@@ -43,7 +43,7 @@ The graph warp requires vertices and faces (triangulation), control points and n
 control points. Based on the given informations, graph transform compute new positions of supplied
 vertices.
 
-Example:
+**Example:**
 
 .. code-block:: python
 
@@ -79,7 +79,7 @@ An algorithm requires image, source and destination vertices, and faces for both
 both sets have to be same, so in other words, source and destination faces must form pairs. A pixel in each
 triangle is transformed via affine transformation defined by source to destination face.
 
-Example:
+**Example:**
 
 .. code-block:: python
 
@@ -152,7 +152,7 @@ The area of frame generated in such manner is triangulated.
 
 Following example will generate mesh within rectangle of dimensions W x H = 1000 x 800 pixels.
 
-Example:
+**Example:**
 
 .. code-block:: python
 
@@ -164,6 +164,15 @@ Example:
   :width: 40%
   :alt: mesh
   :align: center
+
+**Example on triangular mesh:**
+
+
+.. figure:: ./docs/source/_static/readme/full_graph_def_t.png
+  :width: 70%
+  :alt: mesh
+  :align: center
+
 
 References
 ----------
