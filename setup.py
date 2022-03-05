@@ -100,7 +100,7 @@ setup(
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
         'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Image',
+        'Topic :: Scientific/Engineering :: Image Processing',
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
