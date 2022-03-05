@@ -87,7 +87,7 @@ vertices.
 
 .. code-block:: python
 
-    from pwarp import get_default_puppet
+    from pwarp import get_default_puppet, graph_warp
 
     control_pts = np.array([22, 50, 94, 106], dtype=int)
     shift = np.array(
@@ -123,8 +123,9 @@ triangle is transformed via affine transformation defined by source to destinati
 
 .. code-block:: python
 
-    from pwarp import get_default_puppet
+    import cv2
     from matplotlib import pyplot as plt
+    from pwarp import graph_defined_warp, graph_warp
 
     control_pts = np.array([22, 50, 94, 106], dtype=int)
     shift = np.array(
@@ -143,7 +144,7 @@ triangle is transformed via affine transformation defined by source to destinati
 
     image = cv2.cvtColor(cv2.imread("../data/puppet.png"), cv2.COLOR_BGR2RGB)
     width, height = 1280, 800
-    dx, dy = dtype.INT32(width // 2), dtype.INT32(height // 2)
+    dx, dy = int(width // 2), int(height // 2)
     scale_x, scale_y = 200, -200
     r = puppet.r.copy()
     r[:, 0] = r[:, 0] * scale_x + dx
