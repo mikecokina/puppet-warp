@@ -33,14 +33,6 @@ pwarp.profiler module
    :undoc-members:
    :show-inheritance:
 
-pwarp.render module
--------------------
-
-.. automodule:: pwarp.render
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

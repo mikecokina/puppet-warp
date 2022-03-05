@@ -8,7 +8,7 @@ v0.1_
 .. _Takeo_Igarashi_2009: https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
 .. _ARAPShapeManipulation: https://github.com/deliagander/ARAPShapeManipulation.git
 
-**Release date:** YYYY-MM-DD
+**Release date:** 2022-03-05
 
 **Features**
 
