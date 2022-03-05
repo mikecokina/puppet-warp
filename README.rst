@@ -18,9 +18,9 @@ Puppet Warp
 The goal of the package `puppet-warp` is provide plug and play solution for image
 transformation similar to Adobe Photoshop `Puppet Warp` tool. Since Photoshop
 solution is proprietary, hence any scripting might be a big issues especially in
-enviroments where Photoshop is not supported, we decided to create this package based
-on Python in which Puppet Warp is programmatically manageable and used in automatation
-processes where advaned transformation method is required.
+environments where Photoshop is not supported, we decided to create this package based
+on Python in which Puppet Warp is programmatically manageable and used in automation
+processes where advanced transformation method is required.
 
 Features
 --------
@@ -57,7 +57,7 @@ Usage
 Demo
 ====
 
-The packge puppet-warp is comming with live demo. To open lived demo, use following code.
+The package puppet-warp is coming with live demo. To open lived demo, use following code.
 
 .. code-block:: python
 
@@ -77,7 +77,7 @@ Graph warp
 ==========
 
 The graph warp requires vertices and faces (triangulation), control points and new displacement of
-control points. Based on the given informations, graph transform compute new positions of supplied
+control points. Based on the given information, graph transform compute new positions of supplied
 vertices.
 
 **Example:**
@@ -111,7 +111,7 @@ vertices.
 Graph defined warp
 ==================
 
-The graph defiend warp will transform areas of image covered by source vertices to given destination vertices.
+The graph defined warp will transform areas of image covered by source vertices to given destination vertices.
 An algorithm requires image, source and destination vertices, and faces for both. An order of faces (triangles) in
 both sets have to be same, so in other words, source and destination faces must form pairs. A pixel in each
 triangle is transformed via affine transformation defined by source to destination face.
@@ -187,14 +187,14 @@ The density of the mesh is adjustable via `delta` parameter. Algorithms is based
 is defined by vertices where distance between each two vertices is defined by mentioned delta parameter.
 The area of frame generated in such manner is triangulated.
 
-Following example will generate mesh within rectangle of dimensions W x H = 1000 x 800 pixels.
+Following example will generate mesh within rectangle of dimensions W x H = 1280 x 800 pixels.
 
 **Example:**
 
 .. code-block:: python
 
     from pwarp import triangular_mesh
-    r, f = triangular_mesh(width=1000, height=800, delta=100)
+    r, f = triangular_mesh(width=1280, height=800, delta=100)
 
 
 .. figure:: ./docs/source/_static/readme/mesh.png
