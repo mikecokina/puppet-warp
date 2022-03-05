@@ -125,7 +125,7 @@ triangle is transformed via affine transformation defined by source to destinati
 
     import cv2
     from matplotlib import pyplot as plt
-    from pwarp import graph_defined_warp, graph_warp
+    from pwarp import graph_defined_warp, graph_warp, get_default_puppet
 
     control_pts = np.array([22, 50, 94, 106], dtype=int)
     shift = np.array(
