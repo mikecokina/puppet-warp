@@ -18,7 +18,7 @@ Puppet Warp
 The goal of the package `puppet-warp` is provide plug and play solution for image
 transformation similar to Adobe Photoshop `Puppet Warp` tool. Since Photoshop
 solution is proprietary, hence any scripting might be a big issues especially in
-environments where Photoshop is not supported, we decided to create this package based
+environments where Photoshop is not supported, I decided to create this package based
 on Python in which Puppet Warp is programmatically manageable and used in automation
 processes where advanced transformation method is required.
 
@@ -27,6 +27,9 @@ Features
 
 - As-Rigid-as-Possible Shape Manipulation of triangular mesh
 - Image transfer from triangualar mesh at rest to mesh defined by ARAP transformation
+
+:note: I highly encourage you to report any issue. Feel free to create pull request.
+
 
 Requirements
 ------------
