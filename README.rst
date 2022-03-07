@@ -89,7 +89,9 @@ vertices.
 
     from pwarp import get_default_puppet, graph_warp
 
+    # Control points represent indices of points in original vertex array.
     control_pts = np.array([22, 50, 94, 106], dtype=int)
+    # Shif represents new positions of control points respectively to `control_pts` list.
     shift = np.array(
         [[0.555, -0.905],
          [-0.965, -0.875],
