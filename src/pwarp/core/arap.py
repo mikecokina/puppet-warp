@@ -56,7 +56,7 @@ class StepOne(object):
                               [l_vert[1], -l_vert[0], 0, 1]],
                              dtype=dtype.FLOAT)
                 _slice = 6
-            # For 4 neighbour points (when at the graph edge).
+            # For 4 neighbour points (when not at the graph edge).
             else:
                 r_vert = vertices[r_index]
                 g = np.array([[i_vert[0], i_vert[1], 1, 0],
