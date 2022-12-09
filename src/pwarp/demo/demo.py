@@ -42,7 +42,7 @@ class Demo(object):
             window_name: str = 'ARAP',
             screen_width: int = 1280,
             screen_height: int = 800,
-            scale: int = -200,
+            scale: float = -200,
             dx: int = None,
             dy: int = None,
             output_dir: str = None,
@@ -53,7 +53,7 @@ class Demo(object):
         self.screen_height = screen_height
         self.dx = dtype.INT(self.screen_width // 2) if dx is None else dx
         self.dy = dtype.INT(self.screen_height // 2) if dy is None else dy
-        self.scale = dtype.INT(scale)
+        self.scale = dtype.FLOAT(scale)
 
         # Background image preps.
         self.img = np.zeros((self.screen_height, self.screen_width, 3), np.uint8)
@@ -145,8 +145,8 @@ class Demo(object):
                     else:
                         locations = self.new_vertices[selected, :]
 
-                    a = (a - dtype.INT(self.dx)) / dtype.INT(self.scale)
-                    b = (b - dtype.INT(self.dy)) / dtype.INT(self.scale)
+                    a = (a - dtype.FLOAT(self.dx)) / dtype.FLOAT(self.scale)
+                    b = (b - dtype.FLOAT(self.dy)) / dtype.FLOAT(self.scale)
 
                     # Moving control index is index appliable to array `selected`.
                     moving_c_index = np.where(selected == self.moving_index)[0][0]
