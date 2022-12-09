@@ -55,7 +55,7 @@ def inbox_tri_warp(
     :param use_scikit: bool;
     :return: Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]];
     """
-    # Find bounding rectangle for each triangle
+    # Find bounding rectangle for each triangle in form (x, y, width, height).
     bbox_src = cv2.boundingRect(tri_src)
     bbox_dst = cv2.boundingRect(tri_dst)
 
