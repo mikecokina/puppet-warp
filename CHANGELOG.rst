@@ -18,3 +18,25 @@ v0.1_
     - Implementiion As-Rigid-As-Possible Shape Manipulation based on paper Takeo_Igarashi_2009_
     - Implementation of Demo based on script ARAPShapeManipulation_ by `deliagander`
     - Implementation of image transformation based on transformation of triangular mesh over image.
+
+
+
+v0.2.dev0
+---------
+
+**Release date:** YYYY-MM-DD
+
+**Features**
+
+- Wavefront loader supports following forms of `face` definitions:
+
+    - f v1 v2 v3 ....
+    - f v1/vt1 v2/vt2 v3/vt3 ...
+    - f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
+    - f v1//vn1 v2//vn2 v3//vn3 ...
+
+
+**Fixes**
+
+- `Demo` loader supports scaling factor as `FLOAT` instead of `INT` what also allows
+to decrease size of supplied triangular mesh
