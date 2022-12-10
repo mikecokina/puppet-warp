@@ -144,7 +144,7 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         'dev': [],
-        'test': [],
+        'test': ['parameterized>=0.8.1'],
     },
 
     # If there are data files included in your packages that need to be
