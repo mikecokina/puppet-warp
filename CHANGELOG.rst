@@ -2,6 +2,7 @@ Change Log
 ==========
 |
 
+
 v0.1_
 -----
 .. _v0.1: https://github.com/mikecokina/puppet-warp/tree/release/0.1
@@ -21,10 +22,14 @@ v0.1_
 
 
 
-v0.2.dev0
----------
+v0.2
+----
 
-**Release date:** YYYY-MM-DD
+v0.2_
+-----
+.. _v0.2: https://github.com/mikecokina/puppet-warp/tree/release/0.2
+
+**Release date:** 2023-06-02
 
 **Features**
 
@@ -35,8 +40,8 @@ v0.2.dev0
     - f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3 ...
     - f v1//vn1 v2//vn2 v3//vn3 ...
 
-
 **Fixes**
 
-- `Demo` loader supports scaling factor as `FLOAT` instead of `INT` what also allows
-to decrease size of supplied triangular mesh
+- `Demo` loader supports scaling factor as `FLOAT` instead of `INT` what also allows to decrease size of supplied triangular mesh
+- Since there was issue with some Python versions and `triangle` package availability, requirements for library are decreased to `20200424`
+- Numpy is not fixed to the single version anymore

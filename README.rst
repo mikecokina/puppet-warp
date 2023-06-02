@@ -1,6 +1,6 @@
 |GitHub version| |Licence GPLv3| |Python version| |OS|
 
-.. |GitHub version| image:: https://img.shields.io/badge/version-0.1-yellow.svg
+.. |GitHub version| image:: https://img.shields.io/badge/version-0.2-yellow.svg
 
 .. |Python version| image:: https://img.shields.io/badge/python-3.7|3.8|3.9-orange.svg
 
