@@ -45,3 +45,14 @@ v0.2_
 - `Demo` loader supports scaling factor as `FLOAT` instead of `INT` what also allows to decrease size of supplied triangular mesh
 - Since there was issue with some Python versions and `triangle` package availability, requirements for library are decreased to `20200424`
 - Numpy is not fixed to the single version anymore
+
+
+v0.3.dev_
+---------
+.. _v0.3.dev: https://github.com/mikecokina/puppet-warp/tree/master
+
+**Release date:** ????-??-??
+
+**Features**
+
+- Demo supports control points remove
