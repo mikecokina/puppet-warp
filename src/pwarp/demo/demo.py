@@ -31,7 +31,7 @@ class Demo(object):
         - A: Press Space Bar to save transformed mesh in wavefron format.
 
         - Q: Where is output stored?
-        - A: The each saved output is by default stored in directory ~/pwarp.
+        - A: Each saved output is by default stored in directory ~/pwarp.
 
         - Q: Is it possible to configure output directory?
         - A: Yes, you can change an output directory via initialization variable `output_dir`.
@@ -64,6 +64,7 @@ class Demo(object):
             self.img = cv2.imread(image)
             self.transform_image = True
         self._img = self.img.copy()
+        self._transformed_background = self.img.copy()
 
         if output_dir is None:
             output_dir = op.expanduser("~/pwarp")
@@ -83,6 +84,9 @@ class Demo(object):
         self.started = False
         self.new_vertices = np.array([])
         self.window_name = window_name
+
+        self._circle_radius = 5
+        self._verbose = verobse
 
         # Load wavefront object.
         num_vertices, num_faces, vertices, faces = _io.read_wavefront(obj_path)
@@ -121,7 +125,12 @@ class Demo(object):
             if is_close:
                 # Mark vertex as control point.
                 if self.vertices_select[index] == 0:
-                    cv2.circle(self.img, (x, y), 5, (0, 0, 255), 1)
+                    selected = (self.new_vertices if len(self.new_vertices) else self.vertices_t)[index]
+                    selected_vertex = self.shift_and_scale(np.array([selected]))[0]
+                    self.vertices_select[index] = 1
+
+                    _x, _y = selected_vertex
+                    cv2.circle(self.img, (_x, _y), self._circle_radius, (0, 0, 255), 1)
                     self.vertices_select[index] = 1
 
                 elif self.vertices_select[index] == 1:
@@ -129,6 +138,27 @@ class Demo(object):
                     self.moving_index = index
                     if not self.started:
                         self.moving_index_old = self.moving_index
+
+        elif event == cv2.EVENT_MBUTTONDOWN:
+            # Deselect point with double click.
+            is_close, index = misc.is_close(x, y, self.shift_and_scale(self.vertices))
+
+            if self.started:
+                is_close, index = misc.is_close(x, y, self.shift_and_scale(self.new_vertices))
+
+            is_selected = self.vertices_select[index] == 1
+            if is_close and is_selected:
+                self.vertices_select[index] = 0
+
+                # Redraw.
+                vertices = self.new_vertices if len(self.new_vertices) else self.vertices_t
+                _x, _y = self.shift_and_scale(vertices)[index]
+                radius = self._circle_radius
+
+                content = self._transformed_background[_y - radius:_y + radius, _x - radius:_x + radius]
+                self.img[_y - radius:_y + radius, _x - radius:_x + radius] = content
+                draw.draw_mesh(self.shift_and_scale(vertices), self.edges, self.img)
+                cv2.imshow(self.window_name, self.img)
 
         elif event == cv2.EVENT_MOUSEMOVE:
             if self.moving_index >= 0:
@@ -145,6 +175,10 @@ class Demo(object):
                     else:
                         locations = self.new_vertices[selected, :]
 
+                    if self._verbose:
+                        logger.info(f"Control points: {selected}")
+                        logger.info(f'Control points coordinates: {locations}')
+
                     a = (a - dtype.FLOAT(self.dx)) / dtype.FLOAT(self.scale)
                     b = (b - dtype.FLOAT(self.dy)) / dtype.FLOAT(self.scale)
 
@@ -152,6 +186,9 @@ class Demo(object):
                     moving_c_index = np.where(selected == self.moving_index)[0][0]
                     # New location of control points after movement.
                     locations[moving_c_index, :] = np.array([a, b], dtype=dtype.FLOAT)
+
+                    if self._verbose:
+                        logger.info(f'Control points moved to position {locations}')
 
                     if not np.array_equal(selected, self.selected_old):
                         self.started = True
@@ -167,10 +204,12 @@ class Demo(object):
                     if self.transform_image:
                         self.img = warp.graph_defined_warp(
                             self.img, self.vertices_t, self.faces, new_vertices_t, self.faces)
+                        self._transformed_background = self.img.copy()
+
                     draw.draw_mesh(self.shift_and_scale(self.new_vertices), self.edges, self.img)
 
                     # Move control points in screen.
-                    [cv2.circle(self.img, (vertex[0], vertex[1]), 5, (0, 0, 255), 1)
+                    [cv2.circle(self.img, (vertex[0], vertex[1]), self._circle_radius, (0, 0, 255), 1)
                      for vertex in new_vertices_t[selected]]
 
         elif event == cv2.EVENT_LBUTTONUP:
