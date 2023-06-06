@@ -47,6 +47,7 @@ class Demo(object):
             dy: int = None,
             output_dir: str = None,
             image: Union[str, None] = op.join(op.dirname(__file__), '..', 'data', 'puppet.png'),
+            verobse: bool = False
     ):
         # Screen dimensions.
         self.screen_width = screen_width
