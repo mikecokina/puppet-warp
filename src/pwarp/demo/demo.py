@@ -126,8 +126,13 @@ class Demo(object):
             if is_close:
                 # Mark vertex as control point.
                 if self.vertices_select[index] == 0:
-                    selected = (self.new_vertices if len(self.new_vertices) else self.vertices_t)[index]
-                    selected_vertex = self.shift_and_scale(np.array([selected]))[0]
+                    # If already manipulated, new vertices requires rescaling, since data are stored in original scale.
+                    if len(self.new_vertices):
+                        selected_vertex = self.new_vertices[index]
+                        selected_vertex = self.shift_and_scale(np.array([selected_vertex]))[0]
+                    else:
+                        selected_vertex = self.vertices_t[index].astype(int)
+
                     self.vertices_select[index] = 1
 
                     _x, _y = selected_vertex
