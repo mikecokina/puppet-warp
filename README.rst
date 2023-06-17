@@ -51,6 +51,11 @@ Installation
 
     pip install puppet-warp
 
+For latest version from git, I recommend you to use::
+
+    pip3 install git+https://github.com/mikecokina/puppet-warp.git@master
+
+
 Usage
 ~~~~~
 
