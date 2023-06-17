@@ -131,11 +131,11 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'numpy>=1.21.5',
-        'opencv-contrib-python==4.5.4.60',
-        'opencv-python==4.5.4.60',
-        'scikit-image==0.19.2',
-        'scikit-learn==1.0.2',
-        'triangle>=20200424',
+        'opencv-contrib-python>=4.5.4.60,<=4.7.0.72',
+        'opencv-python>=4.5.4.60,<=4.7.0.72',
+        'scikit-image>=0.19.2,<=0.21.0',
+        'scikit-learn>=1.0.2,<=1.2.2',
+        'triangle>=20200424'
     ],
 
     # List additional groups of dependencies here (e.g. development
