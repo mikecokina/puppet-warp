@@ -1,7 +1,5 @@
 from typing import Union, Tuple
 
-import triangle
-
 from pwarp import np
 from pwarp.core import dtype
 
@@ -14,7 +12,8 @@ __all__ = (
 def triangular_mesh(
         width: Union[int, dtype.INT32],
         height: Union[int, dtype.INT32],
-        delta: Union[int, dtype.INT32]
+        delta: Union[int, dtype.INT32],
+        method: str = 'scipy'
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Create triangular mesh within rectangular area defined by width/height.
@@ -34,6 +33,7 @@ def triangular_mesh(
     :param width: Union[int, dtype.INT32];
     :param height: Union[int, dtype.INT32];
     :param delta: Union[int, dtype.INT32];
+    :param method: str; method to create triangular mesh; `scipy` or `jrs` (stands for Jonathan Richard Shewchuk)
     :return: Tuple[np.ndarray, np.ndarray];
     """
     nx, ny = width // delta + 1, height // delta + 1
@@ -43,8 +43,26 @@ def triangular_mesh(
     xs = np.concatenate([x, x[1:], np.zeros(len(y)), np.zeros(len(y) - 1) + width])
     ys = np.concatenate([np.zeros(len(x)), np.zeros(len(x) - 1) + height, y, y[:-1]])
 
-    frame = np.array([xs, ys]).astype(dtype=dtype.INT32).T
-    area = np.power(delta, 2) // 2
-    t = triangle.triangulate({"vertices": frame}, f'a{area}q30')
+    if method == 'scipy':
+        from scipy.spatial import Delaunay
 
-    return t['vertices'].astype(dtype.INT32), t['triangles'].astype(dtype.INT32)
+        x_coo, y_coo = np.meshgrid(np.arange(delta, width, delta), np.arange(delta, height, delta))
+        xs = np.concatenate((xs, x_coo.ravel()))
+        ys = np.concatenate((ys, y_coo.ravel()))
+
+        # Triangulate points using Delaunay
+        points = np.column_stack((xs, ys))
+        triangulation = Delaunay(points)
+
+        return triangulation.points.astype(dtype.INT32), triangulation.simplices.astype(dtype.INT32)
+
+    elif method == 'jrs':
+        import triangle
+
+        frame = np.array([xs, ys]).astype(dtype=dtype.INT32).T
+        area = np.power(delta, 2) // 2
+        t = triangle.triangulate({"vertices": frame}, f'a{area}q30')
+        return t['vertices'].astype(dtype.INT32), t['triangles'].astype(dtype.INT32)
+
+
+

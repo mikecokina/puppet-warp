@@ -38,10 +38,11 @@ Requirements
     opencv-python>=4.5.4.60,<=4.7.0.72
     scikit-image>=0.19.2,<=0.21.0
     scikit-learn>=1.0.2,<=1.2.2
+
+
+Optional::
+
     triangle>=20200424
-
-
-:note: Package will most likely work also with **opencv v3**, but never tested.
 
 
 Installation
@@ -55,6 +56,9 @@ For latest version from git, I recommend you to use::
 
     pip3 install git+https://github.com/mikecokina/puppet-warp.git@master
 
+Install with `Jonathan Richard Shewchuk's` `(Dzhelil Rufat)` triangle::
+
+    pip install puppet-warp[jrs]
 
 Usage
 ~~~~~
@@ -76,6 +80,44 @@ and drag the point wherever you like.
 
 Demo comes with capability to store transformed mesh. To save the mesh, hit **Space Bar**.
 To quit demo, hit **Esc** button.
+
+Custom demo
+~~~~~~~~~~~
+
+.. code-block:: python
+
+    import cv2
+    from pwarp import triangular_mesh, Demo
+    from pwarp._io import save_wavefront
+
+    # DEFINE WITHD and HEIGHT of your example image and DELTA step to create triangular mesh.
+    width = 800
+    height = 492
+    delta = 100
+    method = 'scipy'  # or jrs
+
+    # DEFINE path to your image and path, where WAVEFRONT file will be stored.
+    wavefront_path = "image.obj"
+    image_path = "image.jpg"
+
+    # noinspection PyUnresolvedReferences
+    image = cv2.cvtColor(cv2.imread(image_path), cv2.COLOR_BGR2RGB)
+
+    # This will genearete triangular mesh over the image with given
+    r, f = triangular_mesh(width=width, height=height, delta=delta, method=method)
+    # Save wavefront object.
+    save_wavefront(wavefront_path, no_vertices=len(r), no_faces=len(f), vertices=r, faces=f)
+
+    Demo(
+        image=image_path,
+        obj_path=wavefront_path,
+        screen_height=height,
+        screen_width=width,
+        scale=1,
+        dx=0,
+        dy=0,
+        verobse=True
+    ).run()
 
 
 Graph warp

@@ -56,3 +56,4 @@ v0.3.dev_
 **Features**
 
 - Demo supports control points remove
+- Triangle is not mandatory requirements anymore, triangulation is by default provided via `scipy.spatial.Delaunay`
