@@ -34,5 +34,5 @@ def get_default_puppet():
     return PuppetObject(vertices=r, faces=f, no_faces=no_f, no_vertices=no_r)
 
 
-__version__ = "0.2"
+__version__ = "0.3"
 __author__ = "mikecokina"

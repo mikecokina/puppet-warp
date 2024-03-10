@@ -49,9 +49,9 @@ v0.2_
 
 v0.3.dev_
 ---------
-.. _v0.3.dev: https://github.com/mikecokina/puppet-warp/tree/master
+.. _v0.3: https://github.com/mikecokina/puppet-warp/tree/release/0.3
 
-**Release date:** ????-??-??
+**Release date:** 2024-03-10
 
 **Features**
 
