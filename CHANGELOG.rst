@@ -2,24 +2,27 @@ Change Log
 ==========
 |
 
+v0.4.dev0
+---------
+.. _v0.4.dev0: https://github.com/mikecokina/puppet-warp/tree/dev
 
-v0.1_
------
-.. _v0.1: https://github.com/mikecokina/puppet-warp/tree/release/0.1
-.. _Takeo_Igarashi_2009: https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
-.. _ARAPShapeManipulation: https://github.com/deliagander/ARAPShapeManipulation.git
+**Release date:** YYYY-MM-DD
 
-**Release date:** 2022-03-05
+**Enhancements**
+
+- Update dependencies to fulfill compatibility with Python up to v3.12.
+
+
+v0.3
+----
+.. _v0.3: https://github.com/mikecokina/puppet-warp/tree/release/0.3
+
+**Release date:** 2024-03-10
 
 **Features**
 
-
-* **pwarp modul**
-
-    - Implementiion As-Rigid-As-Possible Shape Manipulation based on paper Takeo_Igarashi_2009_
-    - Implementation of Demo based on script ARAPShapeManipulation_ by `deliagander`
-    - Implementation of image transformation based on transformation of triangular mesh over image.
-
+- Demo supports control points remove
+- Triangle is not mandatory requirements anymore, triangulation is by default provided via `scipy.spatial.Delaunay`
 
 
 v0.2
@@ -47,13 +50,19 @@ v0.2_
 - Numpy is not fixed to the single version anymore
 
 
-v0.3.dev_
----------
-.. _v0.3: https://github.com/mikecokina/puppet-warp/tree/release/0.3
+v0.1_
+-----
+.. _v0.1: https://github.com/mikecokina/puppet-warp/tree/release/0.1
+.. _Takeo_Igarashi_2009: https://www-ui.is.s.u-tokyo.ac.jp/~takeo/papers/takeo_jgt09_arapFlattening.pdf
+.. _ARAPShapeManipulation: https://github.com/deliagander/ARAPShapeManipulation.git
 
-**Release date:** 2024-03-10
+**Release date:** 2022-03-05
 
 **Features**
 
-- Demo supports control points remove
-- Triangle is not mandatory requirements anymore, triangulation is by default provided via `scipy.spatial.Delaunay`
+
+* **pwarp modul**
+
+    - Implementiion As-Rigid-As-Possible Shape Manipulation based on paper Takeo_Igarashi_2009_
+    - Implementation of Demo based on script ARAPShapeManipulation_ by `deliagander`
+    - Implementation of image transformation based on transformation of triangular mesh over image.

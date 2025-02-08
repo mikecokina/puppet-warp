@@ -112,6 +112,8 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
 
     # What does your project relate to?
@@ -132,10 +134,10 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'numpy>=1.21.5',
-        'opencv-contrib-python>=4.5.4.60,<=4.7.0.72',
-        'opencv-python>=4.5.4.60,<=4.7.0.72',
-        'scikit-image>=0.19.2,<=0.21.0',
-        'scikit-learn>=1.0.2,<=1.2.2',
+        'opencv-contrib-python>=4.5.4.60,<=4.11.0.86',
+        'opencv-python>=4.5.4.60,<=4.11.0.86',
+        'scikit-image>=0.19.2,<=0.25.1',
+        'scikit-learn>=1.0.2,<=1.6.1',
     ],
 
     # List additional groups of dependencies here (e.g. development

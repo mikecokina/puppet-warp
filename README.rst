@@ -1,8 +1,8 @@
 |GitHub version| |Licence GPLv3| |Python version| |OS|
 
-.. |GitHub version| image:: https://img.shields.io/badge/version-0.3-yellow.svg
+.. |GitHub version| image:: https://img.shields.io/badge/version-0.4.dev0-yellow.svg
 
-.. |Python version| image:: https://img.shields.io/badge/python-3.7|3.8|3.9|3.10-orange.svg
+.. |Python version| image:: https://img.shields.io/badge/python-3.7|3.8|3.9|3.10|3.11|3.12-orange.svg
 
 .. |Licence GPLv3| image:: https://img.shields.io/badge/license-GNU/GPLv3-blue.svg
 
@@ -34,10 +34,10 @@ Requirements
 ::
 
     numpy>=1.21.5
-    opencv-contrib-python>=4.5.4.60,<=4.7.0.72
-    opencv-python>=4.5.4.60,<=4.7.0.72
-    scikit-image>=0.19.2,<=0.21.0
-    scikit-learn>=1.0.2,<=1.2.2
+    opencv-contrib-python>=4.5.4.60,<=4.11.0.86
+    opencv-python>=4.5.4.60,<=4.11.0.86
+    scikit-image>=0.19.2,<=0.25.1
+    scikit-learn>=1.0.2,<=1.6.1
 
 
 Optional::
