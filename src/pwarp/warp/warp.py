@@ -242,9 +242,9 @@ def graph_defined_warp(
 
     # If entire graph is out of the box.
     if (dx >= width or dy >= height) or (dx < -bbox_w or dy < -bbox_h):
-        return np.ones((height, width, 3), dtype=dtype.UINT8) * 255
+        return np.zeros((height, width, 3), dtype=dtype.UINT8) * 255
 
-    bbox_base_image = np.ones((bbox_h, bbox_w, 3), dtype=dtype.UINT8) * 255
+    bbox_base_image = np.zeros((bbox_h, bbox_w, 3), dtype=dtype.UINT8) * 255
 
     # Iterate over all faces.
     for f_src, f_dst in zip(faces_src, faces_dst):
