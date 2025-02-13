@@ -1,4 +1,4 @@
-from typing import Union, Iterable, Tuple
+from typing import Union, Iterable, Tuple, List
 
 import cv2
 import numpy as np
@@ -140,11 +140,24 @@ def merge_transformed(
     return base_image
 
 
+def _get_solid_background(
+        width: int,
+        height: int,
+        bg_fill: Union[int, Tuple[int, int, int], List[int]]
+) -> np.ndarray:
+    if isinstance(bg_fill, int):
+        bg_fill = (bg_fill, bg_fill, bg_fill)
+    # Assuming input data as RGB (not BGR), thus invert order to fulfill cv2 order.
+    bg_fill = np.array([*bg_fill][:3][::-1], dtype=dtype.UINT8)
+    return np.ones((height, width, 3), dtype=dtype.UINT8) * bg_fill
+
+
 def _crop_to_origin(
         image: np.ndarray,
         bbox: Tuple[int, int, int, int],
         origin_w: Union[int, dtype.INT],
         origin_h: Union[int, dtype.INT],
+        bg_fill: Union[int, Tuple[int, int, int], List[int]] = 255
 ) -> np.ndarray:
     """
     Some traget vertices of transformed mesh might be outside of original iamge boundaries.
@@ -156,11 +169,12 @@ def _crop_to_origin(
     :param image: np.ndarray;
     :param origin_w: Union[int, dtype.INT];
     :param origin_h: Union[int, dtype.INT];
+    :param bg_fill: Union[int, Tuple[int, int, int], List[int]];
     :return: np.ndarray;
     """
     dx, dy, bbox_w, bbox_h = bbox
-    # Create base white image.
-    base_image = np.ones((origin_h, origin_w, 3), dtype=dtype.UINT8) * 255
+    # Create base image with defined background color.
+    base_image = _get_solid_background(origin_w, origin_h, bg_fill)
     slicer = np.zeros((2, 4), dtype=dtype.INT32)
     deltas, shape, bbox_shape = (dx, dy), (origin_w, origin_h), (bbox_w, bbox_h)
 
@@ -219,6 +233,7 @@ def graph_defined_warp(
         vertices_dst: np.ndarray,
         faces_dst: np.ndarray,
         use_scikit: Union[dtype.BOOL, bool] = False,
+        bg_fill: Union[int, Tuple[int, int, int], List[int]] = 255
 ) -> np.ndarray:
     """
     Based on triangulated shape transformed from source to destination mesh
@@ -232,6 +247,7 @@ def graph_defined_warp(
     :param vertices_dst: np.ndarray;
     :param faces_dst: np.ndarray;
     :param use_scikit: bool;
+    :param bg_fill: Union[int, Tuple[int], List[int]];
     :return: np.ndarray;
     """
     # Create white image of shape of vertices bonding box.
@@ -242,9 +258,9 @@ def graph_defined_warp(
 
     # If entire graph is out of the box.
     if (dx >= width or dy >= height) or (dx < -bbox_w or dy < -bbox_h):
-        return np.ones((height, width, 3), dtype=dtype.UINT8) * 255
+        return _get_solid_background(width, height, bg_fill)
 
-    bbox_base_image = np.ones((bbox_h, bbox_w, 3), dtype=dtype.UINT8) * 255
+    bbox_base_image = _get_solid_background(bbox_w, bbox_h, bg_fill)
 
     # Iterate over all faces.
     for f_src, f_dst in zip(faces_src, faces_dst):
@@ -262,7 +278,7 @@ def graph_defined_warp(
         bbox_base_image = _broadcast_transformed_tri(bbox_base_image, bbox, warped, alpha)
 
     # Broadcast proper part of transformed bbox image to iamge of original shape.
-    base_image = _crop_to_origin(bbox_base_image, (dx, dy, bbox_w, bbox_h), width, height)
+    base_image = _crop_to_origin(bbox_base_image, (dx, dy, bbox_w, bbox_h), width, height, bg_fill)
 
     return base_image
 

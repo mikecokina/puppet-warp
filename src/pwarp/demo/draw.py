@@ -14,4 +14,5 @@ def draw_mesh(
     for edge in edges:
         start = (vertices[int(edge[0]), 0], vertices[int(edge[0]), 1])
         end = (vertices[int(edge[1]), 0], vertices[int(edge[1]), 1])
+        # noinspection PyTypeChecker
         cv2.line(img, start, end, color, 1)

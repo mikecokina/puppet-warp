@@ -11,6 +11,7 @@ v0.4.dev0
 **Enhancements**
 
 - Update dependencies to fulfill compatibility with Python up to v3.12.
+- Function `graph_defined_warp` takes background color as input parameter `bg_fill`
 
 
 v0.3

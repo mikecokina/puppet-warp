@@ -1,7 +1,7 @@
 import os
 import sys
 import os.path as op
-from typing import Union
+from typing import Union, Tuple, List
 
 import cv2
 
@@ -47,6 +47,7 @@ class Demo(object):
             dy: int = None,
             output_dir: str = None,
             image: Union[str, None] = op.join(op.dirname(__file__), '..', 'data', 'puppet.png'),
+            bg_fill: Union[int, Tuple[int, int, int], List[int]] = 255,
             verbose: bool = False
     ):
         # Screen dimensions.
@@ -66,6 +67,9 @@ class Demo(object):
             self.transform_image = True
         self._img = self.img.copy()
         self._transformed_background = self.img.copy()
+
+        # Misc
+        self._bg_fill = bg_fill
 
         if output_dir is None:
             output_dir = op.expanduser("~/pwarp")
@@ -209,7 +213,13 @@ class Demo(object):
                     new_vertices_t = self.shift_and_scale(new_vertices)
                     if self.transform_image:
                         self.img = warp.graph_defined_warp(
-                            self.img, self.vertices_t, self.faces, new_vertices_t, self.faces)
+                            self.img,
+                            self.vertices_t,
+                            self.faces,
+                            new_vertices_t,
+                            self.faces,
+                            bg_fill=self._bg_fill
+                        )
                         self._transformed_background = self.img.copy()
 
                     draw.draw_mesh(self.shift_and_scale(self.new_vertices), self.edges, self.img)
