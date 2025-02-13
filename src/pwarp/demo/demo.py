@@ -47,7 +47,7 @@ class Demo(object):
             dy: int = None,
             output_dir: str = None,
             image: Union[str, None] = op.join(op.dirname(__file__), '..', 'data', 'puppet.png'),
-            verobse: bool = False
+            verbose: bool = False
     ):
         # Screen dimensions.
         self.screen_width = screen_width
@@ -87,7 +87,7 @@ class Demo(object):
         self.window_name = window_name
 
         self._circle_radius = 5
-        self._verbose = verobse
+        self._verbose = verbose
 
         # Load wavefront object.
         num_vertices, num_faces, vertices, faces = _io.read_wavefront(obj_path)
