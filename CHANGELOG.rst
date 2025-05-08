@@ -12,6 +12,7 @@ v0.4.dev0
 
 - Update dependencies to fulfill compatibility with Python up to v3.12.
 - Function `graph_defined_warp` takes background color as input parameter `bg_fill`
+- Used `pyproject.toml` since `setup.py` is deprecated in 2025
 
 
 v0.3

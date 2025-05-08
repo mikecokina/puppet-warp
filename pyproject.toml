@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "puppet-warp"
+version = "0.1.0"  # dynamically loaded in setup.py from version.py, this is fallback
+description = "Puppet Warp"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = { text = "GPL-3.0-or-later" }
+
+authors = [
+  { name = "Michal Cokina", email = "mikecokina@gmail.com" }
+]
+
+keywords = ["image"]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Image Processing",
+#  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
+
+dependencies = [
+  "numpy>=1.21.5",
+  "opencv-contrib-python>=4.5.4.60,<=4.11.0.86",
+  "opencv-python>=4.5.4.60,<=4.11.0.86",
+  "scikit-image>=0.19.2,<=0.25.1",
+  "scikit-learn>=1.0.2,<=1.6.1"
+]
+
+[project.optional-dependencies]
+jrs = ["triangle>=20200424"]
+test = ["parameterized>=0.8.1"]
+
+[project.urls]
+Homepage = "https://github.com/mikecokina/puppet-warp"
+Repository = "https://github.com/mikecokina/puppet-warp"

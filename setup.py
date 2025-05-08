@@ -1,10 +1,8 @@
-"""A setuptools based setup module.
-See:
-https://packaging.python.org/en/latest/distributing.html
-https://github.com/pypa/sampleproject
-
+"""
 Pre-release steps
 -----------------
+
+New approach:
 
 1.  make sure all newly added data files are listed in `setup.py` in variable
     `package_data`as well as in `MANIFEST.in` file
@@ -15,12 +13,13 @@ Pre-release steps
     - `README.rst` in yellow version badge https://img.shields.io/badge/version-<VERSION>-yellow.svg
     - in `src/pwarp/__init__.py`, variable `__version__`
 
-3.  make sure that `CHANGELOG.rst` is up to date; content as well as release date and valid version
+3.  make sure that `CHANGELOG.rst` is up-to-date; content as well as release date and valid version
 
 4.  make sure all newly added dependencies are listed in `requirements.txt` as well as in
-    `setup.py` in variable `install_requires`
+    `setup.py` in variable `install_requires` and in `pyproject.toml` in `dependencies`
+    and `project.optional-dependencies`.
 
-5.  make sure a latest docstsring documentation is generated and there is no error during Sphinx HTML build
+5.  make sure the latest docstsring documentation is generated and there is no error during Sphinx HTML build
     (for more comprehensive information take a look into `docs/README.rst`)
 
 6.  make sure setup.cfg contains all supported Python versions
@@ -37,8 +36,8 @@ Pre-release steps
     >> git push origin --tags
 
 11. build package with command::
-
-    >> python setup.py sdist bdist_wheel
+    >> pip install build
+    >> python -m build
 
 12. configure pypi repositories if necessary (use following configuration template with valid credentials)::
 
@@ -57,16 +56,20 @@ Pre-release steps
 
     >> twine upload dist/* -r pypi
 """
+import sys
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
-from version import get_version
+from os import path
 
+here = path.abspath(path.dirname(__file__))
+sys.path.insert(0, here)
 
-here = path.dirname(__file__)
+from version import get_version  # noqa
+
 
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -88,7 +91,7 @@ setup(
     author_email='mikecokina@gmail.com',
 
     # Choose your license
-    license='GPLv3',
+    license='GPL-3.0-or-later',
 
     classifiers=[
         # How mature is this project? Common values are
@@ -103,7 +106,7 @@ setup(
         'Topic :: Scientific/Engineering :: Image Processing',
 
         # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        # 'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
