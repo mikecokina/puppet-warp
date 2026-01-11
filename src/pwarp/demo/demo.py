@@ -86,8 +86,8 @@ class Demo(object):
         self.end_move = False
         self.moving_index = -1
         self.selected_old = [-1]
-        self.a_matrix = np.nan
-        self.b_vector = np.nan
+        self.a_matrix = None
+        self.b_vector = None
         self.moving_index_old = -1
         self.started = False
         self.new_vertices = np.array([])

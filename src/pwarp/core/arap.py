@@ -4,6 +4,8 @@ from pwarp.core import ops
 from pwarp.core import dtype
 from pwarp import np
 
+from pwarp.core.const import NP_INAN
+
 __all__ = (
     'StepOne',
     'StepTwo',
@@ -33,7 +35,7 @@ class StepOne(object):
             for expression (G.T)^{-1} @ G.T in g_product
         """
         g_product = np.zeros((np.size(edges, 0), 2, 8), dtype=dtype.FLOAT)
-        gi = np.zeros((np.size(edges, 0), 4), dtype=dtype.FLOAT)
+        gi = np.full((len(edges), 4), NP_INAN, dtype=dtype.INT)
 
         if edges.dtype not in [dtype.INDEX]:
             raise ValueError('Invalid dtype of edge indices. Requires np.uint32, np.uint64 or int.')
@@ -52,7 +54,7 @@ class StepOne(object):
             l_vert = vertices[l_index]
 
             # For 3 neighbour points (when at the graph edge).
-            if np.isnan(r_index):
+            if r_index == NP_INAN:
                 g = np.array([[i_vert[0], i_vert[1], 1, 0],
                               [i_vert[1], -i_vert[0], 0, 1],
                               [j_vert[0], j_vert[1], 1, 0],
@@ -76,7 +78,7 @@ class StepOne(object):
                 _slice = 8
 
             # G[k,:,:]
-            gi[k, :] = [i_index, j_index, l_index, np.nan if np.isnan(r_index) else r_index]
+            gi[k, :] = [int(i_index), int(j_index), int(l_index), int(r_index)]
             x_matrix_pad = np.linalg.lstsq(g.T @ g, g.T, rcond=None)[0]
             g_product[k, :, :_slice] = x_matrix_pad[0:2]
 
@@ -110,7 +112,7 @@ class StepOne(object):
             _oz = np.array([[-1, 0, 1, 0, 0, 0, 0, 0],
                             [0, -1, 0, 1, 0, 0, 0, 0]],
                            dtype=dtype.FLOAT)
-            if np.isnan(gi[k, 3]):
+            if gi[k, 3] == NP_INAN:
                 _slice = 6
             else:
                 _slice = 8
@@ -159,7 +161,7 @@ class StepOne(object):
         # Fill values in prepared matrices/vectors
         for k, g_indices in enumerate(gi):
             for i, point_index in enumerate(g_indices):
-                if not np.isnan(point_index):
+                if point_index >= 0:
                     point_index = int(point_index)
                     # In the h_matrix we have stored values for index k (edge index) in following form:
                     # for k = 0, two lines of h_matrix are going one after another like
@@ -224,7 +226,7 @@ class StepTwo(object):
 
         # We compute T′k for each edge.
         for k, edge in enumerate(edges):
-            if np.isnan(gi[k, 3]):
+            if gi[k, 3] == NP_INAN:
                 _slice = 6
                 v = np.array([
                     [v_prime[int(gi[k, 0]), 0]],
