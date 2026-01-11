@@ -38,12 +38,17 @@ class StepOne(object):
         if edges.dtype not in [dtype.INDEX]:
             raise ValueError('Invalid dtype of edge indices. Requires np.uint32, np.uint64 or int.')
 
+        # Cache
+        edge_to_opp = ops.build_edge_opposites(faces)
+
         # Compute G_k matrix for each `k`.
         for k, edge in enumerate(edges):
+            edge: np.ndarray = edge
+
             i_vert, j_vert = vertices[edge]
             i_index, j_index = edge
 
-            l_index, r_index = ops.find_ijlr_vertices(edge, faces)
+            l_index, r_index = ops.find_ijlr_vertices(edge, edge_to_opp)
             l_vert = vertices[l_index]
 
             # For 3 neighbour points (when at the graph edge).

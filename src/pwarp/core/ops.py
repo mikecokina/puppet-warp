@@ -2,7 +2,36 @@ from pwarp import np
 from pwarp.core import dtype
 
 
-def find_ijlr_vertices(edge: np.ndarray, faces: np.ndarray):
+def build_edge_opposites(faces: np.ndarray) -> dict[tuple[int, int], list[int]]:
+    """
+    Precompute adjacency information for fast edge queries.
+
+    Builds a mapping from undirected edge (min(i, j), max(i, j)) to a list of
+    opposite vertices from adjacent faces.
+
+    This is a performance optimization to avoid scanning all faces when
+    resolving local neighborhoods around edges.
+    """
+    faces = np.asarray(faces, dtype=int)
+
+    edge_to_opp: dict[tuple[int, int], list[int]] = {}
+
+    for a, b, c in faces:
+        e1 = (a, b) if a < b else (b, a)
+        e2 = (b, c) if b < c else (c, b)
+        e3 = (a, c) if a < c else (c, a)
+
+        edge_to_opp.setdefault(e1, []).append(c)
+        edge_to_opp.setdefault(e2, []).append(a)
+        edge_to_opp.setdefault(e3, []).append(b)
+
+    return edge_to_opp
+
+
+def find_ijlr_vertices(
+        edge: np.ndarray,
+        edge_to_opp: dict[tuple[int, int], list[int]]
+) -> tuple[int, int]:
     """
     The rotation matrix Tk is given as a transformation that maps the vertices
     around the edge to new positions as closely as possible in a least-squares
@@ -12,36 +41,30 @@ def find_ijlr_vertices(edge: np.ndarray, faces: np.ndarray):
     have found that it produces good results. An exception applies to edges on
     the boundary. In those cases, we only USE THREE VERTICES to compute Tk.
 
-    Source: Igarashi et al., 2009
+    Source: Igarashi et al., 2009:
 
-    ::
-
-        l x--------x j
-                // edge
-            i x-------x r
+    l x--------x j
+            // edge
+        i x-------x r
 
     Find indices of vertex l and r. When edge i-j is situated at the edge of graph,
-    than use only vertex l and r will be set as np.nan.
+    then use only vertex l and r will be set as -1.
 
-    :param edge: np.ndarray;
-    :param faces: np.ndarray;
-    :return: np.ndarray;
+    :param edge: np.ndarray
+    :param edge_to_opp: precomputed mapping from undirected edge to opposite vertices
+    :return: (l, r)
     """
+    i = int(edge[0])
+    j = int(edge[1])
+    key = (i, j) if i < j else (j, i)
 
-    lr_indices = [np.nan, np.nan]
-    count = 0
-    for i, face in enumerate(faces):
-        if np.any(face == edge[0]):
-            if np.any(face == edge[1]):
-                neighbour_index = np.where(face[np.where(face != edge[0])] != edge[1])[0][0]
-                n = face[np.where(face != edge[0])]
-                lr_indices[count] = int(n[neighbour_index])
-                count += 1
+    opp = edge_to_opp.get(key, [])
+    if len(opp) == 0:
+        return -1, -1
+    if len(opp) == 1:
+        return int(opp[0]), -1
 
-                if count == 2:
-                    break
-    l_index, r_index = lr_indices
-    return [l_index, r_index]
+    return int(opp[0]), int(opp[1])
 
 
 def get_edges(no_faces: int, faces: np.ndarray):
