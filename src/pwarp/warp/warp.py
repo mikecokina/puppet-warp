@@ -6,6 +6,7 @@ import numpy as np
 from pwarp.core import dtype, ops
 from pwarp.core.arap import StepOne, StepTwo
 from pwarp.warp import affine
+from pwarp.core.precompute import ArapPrecompute
 
 __all__ = (
     'graph_defined_warp',
@@ -289,7 +290,7 @@ def graph_warp(
         control_indices: np.ndarray,
         shifted_locations: np.ndarray,
         edges: np.ndarray = None,
-        precomputed: Tuple[np.ndarray, np.ndarray, np.ndarray] = None
+        precomputed: ArapPrecompute = None
 ) -> np.ndarray:
     """
     Transform in ARAP manner graph defined by faces and vertices. The given graph will be transformed
@@ -322,7 +323,10 @@ def graph_warp(
         gi, g_product = StepOne.compute_g_matrix(vertices, edges, faces)
         h = StepOne.compute_h_matrix(edges, g_product, gi, vertices)
     else:
-        gi, g_product, h = precomputed
+        edges = precomputed.edges
+        gi = precomputed.gi
+        g_product = precomputed.g_product
+        h = precomputed.h
 
     # Compute v' from paper.
     args = edges, vertices, gi, h, control_indices, shifted_locations

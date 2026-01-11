@@ -6,11 +6,13 @@ from typing import Union, Tuple, List
 import cv2
 
 from pwarp import np, _io
-from pwarp.core import ops, dtype
-from pwarp.core.arap import StepOne, StepTwo
+from pwarp.core import dtype
+from pwarp.core.precompute import arap_precompute
 from pwarp.demo import misc, draw
 from pwarp.logger import getLogger
+from pwarp.warp.warp import graph_warp
 from pwarp.warp import warp
+
 
 logger = getLogger("pwarp.demo.demo")
 
@@ -36,6 +38,7 @@ class Demo(object):
         - Q: Is it possible to configure output directory?
         - A: Yes, you can change an output directory via initialization variable `output_dir`.
     """
+
     def __init__(
             self,
             obj_path: str = op.join(op.dirname(__file__), '..', 'data', 'puppet.obj'),
@@ -99,16 +102,16 @@ class Demo(object):
         self.num_faces = num_faces
         self.vertices = vertices
         self.faces = faces
-        self.edges = ops.get_edges(num_faces, faces)
+
         self.vertices_move = np.zeros(self.num_vertices)
         self.vertices_select = np.zeros(self.num_vertices)
 
         # Original vertices transformed to image dimensions.
         self.vertices_t = self.shift_and_scale(self.vertices)
 
-        # Compute initial transformation matrices.
-        self.gi, self.g_product = StepOne.compute_g_matrix(self.vertices, self.edges, self.faces)
-        self.h = StepOne.compute_h_matrix(self.edges, self.g_product, self.gi, self.vertices)
+        # Mesh-level ARAP precompute belongs to "core". Demo only stores and reuses it.
+        self.pre = arap_precompute(vertices=self.vertices, faces=self.faces)
+        self.edges = self.pre.edges
 
     def shift_and_scale(self, vertices):
         vertices = vertices.copy()
@@ -204,10 +207,14 @@ class Demo(object):
                         self.started = True
 
                     # Transformation.
-                    args = self.edges, self.vertices, self.gi, self.h, selected, locations
-                    new_vertices, _, _ = StepOne.compute_v_prime(*args)
-                    t_matrix = StepTwo.compute_t_matrix(self.edges, self.g_product, self.gi, new_vertices)
-                    new_vertices = StepTwo.compute_v_2prime(self.edges, self.vertices, t_matrix, selected, locations)
+                    # Transformation (orchestration is in graph_warp, math stays in core).
+                    new_vertices = graph_warp(
+                        vertices=self.vertices,
+                        faces=self.faces,
+                        control_indices=selected,
+                        shifted_locations=locations,
+                        precomputed=self.pre,
+                    )
                     self.new_vertices = new_vertices[:]
 
                     new_vertices_t = self.shift_and_scale(new_vertices)
