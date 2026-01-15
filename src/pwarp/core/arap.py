@@ -1,14 +1,12 @@
-from typing import Tuple
+from __future__ import annotations
 
-from pwarp.core import ops
-from pwarp.core import dtype
 from pwarp import np
-
+from pwarp.core import dtype, ops
 from pwarp.core.const import NP_INAN
 
 __all__ = (
-    'StepOne',
-    'StepTwo',
+    "StepOne",
+    "StepTwo",
 )
 
 
@@ -22,22 +20,21 @@ class StepOne:
             c_indices: np.ndarray,
             weight: dtype.FLOAT = dtype.FLOAT(1000.),
     ) -> np.ndarray:
-        """
-        Build A1 matrix for step one: A1 @ v' = b1.
+        """Build A1 matrix for step one: A1 @ v' = b1.
 
         A1 depends on mesh topology (edges, gi), h_matrix, and which vertices are controls (c_indices),
         plus the constraint weight. It does not depend on the actual control target positions.
         """
         a1_matrix = np.zeros(
             (np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2),
-            dtype=dtype.FLOAT
+            dtype=dtype.FLOAT,
         )
 
         # Edge-related rows.
         for k, g_indices in enumerate(gi):
             for i, point_index in enumerate(g_indices):
                 if point_index >= 0:
-                    point_index = int(point_index)
+                    point_index = int(point_index)  # noqa: PLW2901
 
                     # In the h_matrix we have stored values for index k (edge index) in following form:
                     # for k = 0, two lines of h_matrix are going one after another like
@@ -61,7 +58,7 @@ class StepOne:
 
         # Constraint rows: only A side (weights at control indices).
         for c_enum_index, c_vertex_index in enumerate(c_indices):
-            c_vertex_index: int = c_vertex_index
+            c_vertex_index: int = c_vertex_index  # noqa: PLW0127, PLW2901
             a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
             a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
 
@@ -74,14 +71,13 @@ class StepOne:
             c_vertices: np.ndarray,
             weight: dtype.FLOAT = dtype.FLOAT(1000.),
     ) -> np.ndarray:
-        """
-        Build b1 vector for step one: A1 @ v' = b1.
+        """Build b1 vector for step one: A1 @ v' = b1.
 
         b1 depends on the current target positions of control vertices (c_vertices) and weight.
         """
         b1_vector = np.zeros(
             (np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1),
-            dtype=dtype.FLOAT
+            dtype=dtype.FLOAT,
         )
 
         for c_enum_index, _c_vertex_index in enumerate(c_indices):
@@ -96,9 +92,7 @@ class StepOne:
             b1_vector: np.ndarray,
             num_vertices: int,
     ) -> np.ndarray:
-        """
-        Solve step one normal equations and return v' as (num_vertices, 2).
-        """
+        """Solve step one normal equations and return v' as (num_vertices, 2)."""
         v = np.linalg.lstsq(a1_matrix.T @ a1_matrix, a1_matrix.T @ b1_vector, rcond=None)[0]
         v_prime = np.zeros((num_vertices, 2), dtype=dtype.FLOAT)
         v_prime[:, 0] = v[0::2, 0]
@@ -109,9 +103,10 @@ class StepOne:
     def compute_g_matrix(
             vertices: np.ndarray,
             edges: np.ndarray,
-            faces: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
+            faces: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute G matrix from paper.
+
         The paper requires to compute expression (G.T)^{-1} @ G.T = X.
         The problem might be solved by solving equation (G.T @ G) @ X = G.T, hence
         we can simply use np.linalg.lstsq(G.T @ G, G.T, ...).
@@ -119,24 +114,26 @@ class StepOne:
         :param vertices: np.ndarray;
         :param edges: np.ndarray;
         :param faces: np.ndarray;
-        :return: Tuple[np.ndarray, np.ndarray];
+        :return: tuple[np.ndarray, np.ndarray];
 
         Notes:
             gi represents indices of edges that contains result
             for expression (G.T)^{-1} @ G.T in g_product
+
         """
         g_product = np.zeros((np.size(edges, 0), 2, 8), dtype=dtype.FLOAT)
         gi = np.full((len(edges), 4), NP_INAN, dtype=dtype.INT)
 
         if edges.dtype not in [dtype.INDEX]:
-            raise ValueError('Invalid dtype of edge indices. Requires np.uint32, np.uint64 or int.')
+            msg = "Invalid dtype of edge indices. Requires np.uint32, np.uint64 or int."
+            raise ValueError(msg)
 
         # Cache
         edge_to_opp = ops.build_edge_opposites(faces)
 
         # Compute G_k matrix for each `k`.
         for k, edge in enumerate(edges):
-            edge: np.ndarray = edge
+            edge: np.ndarray = edge  # noqa: PLW0127, PLW2901
 
             i_vert, j_vert = vertices[edge]
             i_index, j_index = edge
@@ -180,9 +177,10 @@ class StepOne:
             edges: np.ndarray,
             g_product: np.ndarray,
             gi: np.ndarray,
-            vertices: np.ndarray
+            vertices: np.ndarray,
     ) -> np.ndarray:
-        """
+        """Comptue H matrix from paper.
+
         Transformed term (v′_j − v′_i) − T_{ij} (v_j − v_i) from paper requires
         computation of matrix H. To be able to compute matrix H, we need matrix G
         from other method.
@@ -195,7 +193,7 @@ class StepOne:
         """
         h_matrix = np.zeros((np.size(edges, 0) * 2, 8), dtype=dtype.FLOAT)
         for k, edge in enumerate(edges):
-            # ...where e is an edge vector..
+            # ...where e is an edge vector...
             ek = np.subtract(*vertices[edge[::-1]])
             ek_matrix = np.array([[ek[0], ek[1]], [ek[1], -ek[0]]], dtype=dtype.FLOAT)
 
@@ -203,10 +201,7 @@ class StepOne:
             _oz = np.array([[-1, 0, 1, 0, 0, 0, 0, 0],
                             [0, -1, 0, 1, 0, 0, 0, 0]],
                            dtype=dtype.FLOAT)
-            if gi[k, 3] == NP_INAN:
-                _slice = 6
-            else:
-                _slice = 8
+            _slice = 6 if gi[k, 3] == NP_INAN else 8
 
             g = g_product[k, :, :_slice]
             oz = _oz[:, :_slice]
@@ -224,13 +219,11 @@ class StepOne:
             h_matrix: np.ndarray,
             c_indices: np.ndarray,
             c_vertices: np.ndarray,
-            weight: dtype.FLOAT = dtype.FLOAT(1000.)
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        TODO:
-            - make this method cacheable on A and b matrices.
+            weight: dtype.FLOAT = dtype.FLOAT(1000.),
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Compute v_prime from paper.
 
-        The cookbook from paper requires to compute expression `A1 @ v′ = b1`.
+        The cookbook from paper requires to compute expression `A1 @ v' = b1`.
         Regards to the paper, we will compute v'.
 
         For more information see page 24 of paper on::
@@ -241,7 +234,7 @@ class StepOne:
         surounding points) in original vertices. It just demonstrates that 01, 23, 45, 67 indices of H row form a pair,
         but you have to put them on valid position or be aware of ordering of results in v' vector.
 
-        :return: Tuple[np.ndarray, np.ndarray, np.ndarray]; (v_prime, A matrix, b vector)
+        :return: tuple[np.ndarray, np.ndarray, np.ndarray]; (v_prime, A matrix, b vector)
         """
         a1_matrix = StepOne.build_a_matrix(edges, vertices, gi, h_matrix, c_indices, weight=weight)
         b1_vector = StepOne.build_b_vector(edges, c_indices, c_vertices, weight=weight)
@@ -257,13 +250,14 @@ class StepTwo:
             c_indices: np.ndarray,
             weight: dtype.FLOAT = dtype.FLOAT(1000),
     ) -> np.ndarray:
-        """
+        """Build A2 matrix for step two.
+
         Build A2 matrix for step two. A2 depends on mesh connectivity (edges) and constraint indices,
         plus weight. It does not depend on t_matrix nor on the control target positions.
         """
         a2_matrix = np.zeros(
             (np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)),
-            dtype=dtype.FLOAT
+            dtype=dtype.FLOAT,
         )
 
         # Update values from precomputed components.
@@ -285,9 +279,7 @@ class StepTwo:
             a2_matrix: np.ndarray,
             b2_vector: np.ndarray,
     ) -> np.ndarray:
-        """
-        Solve step two normal equations and return v'' as (num_vertices, 2).
-        """
+        """Solve step two normal equations and return v'' as (num_vertices, 2)."""
         return np.linalg.lstsq(a2_matrix.T @ a2_matrix, a2_matrix.T @ b2_vector, rcond=None)[0]
 
     @staticmethod
@@ -299,13 +291,14 @@ class StepTwo:
             c_vertices: np.ndarray,
             weight: dtype.FLOAT = dtype.FLOAT(1000),
     ) -> np.ndarray:
-        """
+        """Build b2 matrix (two columns x and y) for step two.
+
         Build b2 matrix (two columns x and y) for step two.
         Depends on t_matrix (changes per step-one result) and control target positions.
         """
         b2_vector = np.zeros(
             (np.size(edges, axis=0) + np.size(c_indices), 2),
-            dtype=dtype.FLOAT
+            dtype=dtype.FLOAT,
         )
 
         for k, edge in enumerate(edges):
@@ -323,28 +316,29 @@ class StepTwo:
             edges: np.ndarray,
             g_product: np.ndarray,
             gi: np.ndarray,
-            v_prime: np.ndarray
+            v_prime: np.ndarray,
     ) -> np.ndarray:
-        """
+        """Compute T matrix like described in paper.
+
         From paper:
 
         The second step takes the rotation information from the result of the first step
-        (i.e., computing the explicit values of T′k and normalizing them to remove the
-        scaling factor), rotates the original edge vectors ek by the amount T′k, and
+        (i.e., computing the explicit values of T'k and normalizing them to remove the
+        scaling factor), rotates the original edge vectors ek by the amount T'k, and
         then solves Equation (1) using the original rotated edge vectors. That is, we
         compute the rotation of each edge by using the result of the first step,
         and then normalize it.
-        
-        :param edges: np.ndarray; 
-        :param g_product: np.ndarray; 
+
+        :param edges: np.ndarray;
+        :param g_product: np.ndarray;
         :param gi: np.ndarray;
         :param v_prime: np.ndarray; transformed point in sense of rotation from step one
         :return: np.ndarray;
         """
-        t_matrix = np.zeros(((np.size(edges, axis=0)), 2, 2,), dtype=dtype.FLOAT)
+        t_matrix = np.zeros(((np.size(edges, axis=0)), 2, 2), dtype=dtype.FLOAT)
 
-        # We compute T′k for each edge.
-        for k, edge in enumerate(edges):
+        # We compute T'k for each edge.
+        for k, _ in enumerate(edges):
             if gi[k, 3] == NP_INAN:
                 _slice = 6
                 v = np.array([
@@ -353,7 +347,7 @@ class StepTwo:
                     [v_prime[int(gi[k, 1]), 0]],
                     [v_prime[int(gi[k, 1]), 1]],
                     [v_prime[int(gi[k, 2]), 0]],
-                    [v_prime[int(gi[k, 2]), 1]]
+                    [v_prime[int(gi[k, 2]), 1]],
                 ], dtype=dtype.FLOAT)
             else:
                 _slice = 8
@@ -366,7 +360,7 @@ class StepTwo:
                     [v_prime[int(gi[k, 2]), 1]],
                     [v_prime[int(gi[k, 3]), 0]],
                     [v_prime[int(gi[k, 3]), 1]]],
-                    dtype=dtype.FLOAT
+                    dtype=dtype.FLOAT,
                 )
             # We compute the rotation of each edge by using the result of the first step,
             g = g_product[k, :, :_slice]
@@ -385,9 +379,9 @@ class StepTwo:
             t_matrix: np.ndarray,
             c_indices: np.ndarray,
             c_vertices: np.ndarray,
-            weight: dtype.FLOAT = dtype.FLOAT(1000)
+            weight: dtype.FLOAT = dtype.FLOAT(1000),
     ) -> np.ndarray:
-        """
+        """Compute v_2prime.
 
         :param edges: np.ndarray;
         :param vertices: np.ndarray;

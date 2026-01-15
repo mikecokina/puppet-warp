@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from pwarp import np
 from pwarp.core import dtype
 
 
 def build_edge_opposites(faces: np.ndarray) -> dict[tuple[int, int], list[int]]:
-    """
-    Precompute adjacency information for fast edge queries.
+    """Precompute adjacency information for fast edge queries.
 
     Builds a mapping from undirected edge (min(i, j), max(i, j)) to a list of
     opposite vertices from adjacent faces.
@@ -32,7 +33,8 @@ def find_ijlr_vertices(
         edge: np.ndarray,
         edge_to_opp: dict[tuple[int, int], list[int]]
 ) -> tuple[int, int]:
-    """
+    """Vertex finder.
+
     The rotation matrix Tk is given as a transformation that maps the vertices
     around the edge to new positions as closely as possible in a least-squares
     sense. WE SAMPLE FOUR VERTICES around the edge as a context to derive the
@@ -67,9 +69,8 @@ def find_ijlr_vertices(
     return int(opp[0]), int(opp[1])
 
 
-def get_edges(no_faces: int, faces: np.ndarray):
-    """
-    Find all edges from given faces.
+def get_edges(no_faces: int, faces: np.ndarray) -> np.ndarray:
+    """Find all edges from given faces.
 
     :param no_faces: int;
     :param faces: np.ndarray;

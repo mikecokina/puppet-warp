@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
-
-import numpy as np
+from typing import TYPE_CHECKING
 
 from pwarp.core import ops
 from pwarp.core.arap import StepOne
+
+if TYPE_CHECKING:
+    import numpy as np
 
 __all__ = (
     "ArapPrecompute",
@@ -16,8 +17,7 @@ __all__ = (
 
 @dataclass(frozen=True)
 class ArapPrecompute:
-    """
-    Mesh-level precomputed data for ARAP graph warp.
+    """Mesh-level precomputed data for ARAP graph warp.
 
     This object contains everything that depends only on the mesh topology
     (faces, edges) and the original vertex positions used to build ARAP terms.
@@ -25,6 +25,7 @@ class ArapPrecompute:
     It is intended to be created once and reused across many calls of graph_warp,
     especially in interactive demos (mouse dragging).
     """
+
     edges: np.ndarray
     gi: np.ndarray
     g_product: np.ndarray
@@ -35,10 +36,9 @@ def arap_precompute(
         vertices: np.ndarray,
         faces: np.ndarray,
         *,
-        edges: Optional[np.ndarray] = None,
+        edges: np.ndarray | None = None,
 ) -> ArapPrecompute:
-    """
-    Build mesh-level ARAP precomputations.
+    """Build mesh-level ARAP precomputations.
 
     :param vertices: np.ndarray; original mesh vertices (N, 2)
     :param faces: np.ndarray; triangle indices (M, 3)

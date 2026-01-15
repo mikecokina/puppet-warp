@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Union, Iterable, Tuple, List, cast
+from typing import TYPE_CHECKING, cast
 
 import cv2
 import numpy as np
@@ -7,11 +9,15 @@ import numpy as np
 from pwarp.core import dtype, ops
 from pwarp.core.arap import StepOne, StepTwo
 from pwarp.warp import affine
-from pwarp.core.precompute import ArapPrecompute
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from pwarp.core.precompute import ArapPrecompute
 
 __all__ = (
-    'graph_defined_warp',
-    'graph_warp',
+    "graph_defined_warp",
+    "graph_warp",
 )
 
 
@@ -22,7 +28,8 @@ class _FactorCache:
 
 
 def _cap_cache(d: dict, max_items: int = 32) -> None:
-    """
+    """Keep cache in maintanable size.
+
     Keep cache size bounded to avoid unbounded growth when control sets change.
     Pops the oldest inserted items first (dict preserves insertion order in Py 3.7+).
     """
@@ -35,8 +42,7 @@ _step2_cache: dict[tuple[int, float], _FactorCache] = {}
 
 
 def _chol_ata(a: np.ndarray) -> np.ndarray:
-    """
-    Cholesky of (A.T @ A + eps * I).
+    """Cholesky of (A.T @ A + eps * I).
 
     When constraints are weak (e.g. a single control point), A.T @ A can be
     singular or numerically indefinite. We add adaptive diagonal damping until
@@ -61,21 +67,23 @@ def _chol_ata(a: np.ndarray) -> np.ndarray:
             eps = dtype.FLOAT(eps * 10.0)
 
     # If we still fail, propagate - caller can fall back to lstsq.
-    raise np.linalg.LinAlgError("Matrix is not positive definite even after damping")
+    msg = "Matrix is not positive definite even after damping"
+    raise np.linalg.LinAlgError(msg)
 
 
 def _broadcast_transformed_tri(
         dst: np.ndarray,
-        bbox: Union[Tuple[int, int, int, int], np.ndarray],
+        bbox: tuple[int, int, int, int] | np.ndarray,
         warped: np.ndarray,
         mask: np.ndarray,
 ) -> np.ndarray:
-    """
+    """Broadcast triangle transformed within bounding box in affine manner.
+
     Broadcast triangle transformed within bounding box in affine manner
     into destination image of shape of original image.
 
     :param dst: np.ndarray;
-    :param bbox: Tuple[int, int, int, int]; (top_left_x, top_left_y, width, height)
+    :param bbox: tuple[int, int, int, int]; (top_left_x, top_left_y, width, height)
     :param warped: np.ndarray;
     :param mask: np.ndarray;
     :return: np.ndarray;
@@ -94,9 +102,11 @@ def inbox_tri_warp(
         src: np.ndarray,
         tri_src: np.ndarray,
         tri_dst: np.ndarray,
-        use_scikit: bool = True
-) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]]:
-    """
+        *,
+        use_scikit: bool = True,
+) -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
+    """Find affine transformation.
+
     Based on src triangle and dst trianglle in 2D will find affine transformation and return this
     transformation in bounding box of destination triangle.
 
@@ -104,11 +114,11 @@ def inbox_tri_warp(
     :param tri_src: np.ndarray;
     :param tri_dst: np.ndarray;
     :param use_scikit: bool;
-    :return: Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]];
+    :return: tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]];
     """
     # Find bounding rectangle for each triangle in form (x, y, width, height).
-    bbox_src = cast(Tuple[int, int, int, int], cv2.boundingRect(tri_src))
-    bbox_dst = cast(Tuple[int, int, int, int], cv2.boundingRect(tri_dst))
+    bbox_src = cast(tuple[int, int, int, int], cv2.boundingRect(tri_src))  # noqa: TC006
+    bbox_dst = cast(tuple[int, int, int, int], cv2.boundingRect(tri_dst))  # noqa: TC006
 
     # Offset points by left top corner of the respective rectangles.
     tri_src_cropped = tri_src[0, :, :] - np.array(bbox_src[:2], dtype=tri_src.dtype)
@@ -124,14 +134,14 @@ def inbox_tri_warp(
         dst_cropped = affine.warp(
             src_cropped,
             scikit_warp_matrix,
-            mode='edge',
+            mode="edge",
             output_shape=(bbox_dst[3], bbox_dst[2]),
         )
         dst_cropped = np.asarray(dst_cropped)
     else:
         cv2_warp_matrix = affine.affine_transformation(tri_src_cropped, tri_dst_cropped)[:2, :]
         # Apply the Affine Transform  to the src image.
-        _kwargs = dict(flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
+        _kwargs = {"flags": cv2.INTER_LINEAR, "borderMode": cv2.BORDER_REFLECT101}
         dst_cropped = cv2.warpAffine(src_cropped, cv2_warp_matrix, (bbox_dst[2], bbox_dst[3]), None, **_kwargs)
         dst_cropped = np.asarray(dst_cropped)
 
@@ -141,7 +151,7 @@ def inbox_tri_warp(
     dst_cropped *= mask
 
     # Ensure bbox is exactly the declared return type.
-    bbox_dst_typed: Tuple[int, int, int, int] = (int(bbox_dst[0]), int(bbox_dst[1]), int(bbox_dst[2]), int(bbox_dst[3]))
+    bbox_dst_typed: tuple[int, int, int, int] = (int(bbox_dst[0]), int(bbox_dst[1]), int(bbox_dst[2]), int(bbox_dst[3]))
 
     return dst_cropped, mask, bbox_dst_typed
 
@@ -150,9 +160,11 @@ def tri_warp(
         src: np.ndarray,
         tri_src: np.ndarray,
         tri_dst: np.ndarray,
-        use_scikit: bool = True
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
+        *,
+        use_scikit: bool = True,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Find affine transformation.
+
     Based on src triangle and dst trianglle in 2D will find affine transformation
     and returns transformed image from src image in area of dst triangle as well
     as boolean mask which defines this triangle location.
@@ -163,7 +175,7 @@ def tri_warp(
     :param use_scikit: bool;
     :return: np.ndarray; (transformed image within triangle, boolean mask for triangle visibility only)
     """
-    dst_cropped, mask, bbox_dst = inbox_tri_warp(src, tri_src, tri_dst, use_scikit)
+    dst_cropped, mask, bbox_dst = inbox_tri_warp(src, tri_src, tri_dst, use_scikit=use_scikit)
     alpha = np.zeros(src.shape[:2], dtype=dtype.BOOL)
     alpha[bbox_dst[1]:bbox_dst[1] + bbox_dst[3], bbox_dst[0]:bbox_dst[0] + bbox_dst[2]] = mask[:, :, 0]
 
@@ -176,18 +188,18 @@ def tri_warp(
 
 
 def merge_transformed(
-        parts: Iterable[Tuple[np.ndarray, np.ndarray]],
-        width: Union[dtype.INT, int],
-        height: Union[dtype.INT, int],
-        channels: Union[dtype.INT, int] = 3,
-        base_image: np.ndarray = None
+        parts: Iterable[tuple[np.ndarray, np.ndarray]],
+        width: dtype.INT | int,
+        height: dtype.INT | int,
+        channels: dtype.INT | int = 3,
+        base_image: np.ndarray = None,
 ) -> np.ndarray:
-    """
-    Merge together pieces of images defined by image and its mask.
+    """Merge together pieces of images defined by image and its mask.
+
     Mask is expected to be a boolean type np.ndarray and image 3 channels
     cv2 like image.
 
-    :param parts: Iterable[Tuple[np.ndarray, np.ndarray]];
+    :param parts: Iterable[tuple[np.ndarray, np.ndarray]];
     :param width: int;
     :param height: int;
     :param channels: int;
@@ -204,7 +216,7 @@ def merge_transformed(
 def _get_solid_background(
         width: int,
         height: int,
-        bg_fill: Union[int, Tuple[int, int, int], List[int]]
+        bg_fill: int | tuple[int, int, int] | list[int],
 ) -> np.ndarray:
     if isinstance(bg_fill, int):
         bg_fill = (bg_fill, bg_fill, bg_fill)
@@ -215,13 +227,14 @@ def _get_solid_background(
 
 def _crop_to_origin(
         image: np.ndarray,
-        bbox: Tuple[int, int, int, int],
-        origin_w: Union[int, dtype.INT],
-        origin_h: Union[int, dtype.INT],
-        bg_fill: Union[int, Tuple[int, int, int], List[int]] = 255
+        bbox: tuple[int, int, int, int],
+        origin_w: int | dtype.INT,
+        origin_h: int | dtype.INT,
+        bg_fill: int | tuple[int, int, int] | list[int] = 255,
 ) -> np.ndarray:
-    """
-    Some traget vertices of transformed mesh might be outside of original iamge boundaries.
+    """Crop to origin.
+
+    Some traget vertices of transformed mesh might be outside of original image boundaries.
     To avoid invalid behaviour, affine transformation of each triangle is running on enlarged image.
     The enlargement is done by bounding box of vertices. (In case transformation mesh is smaller,
     then bounding box is smaller as well). In this function, enlarged (shrinked in case of smaller mesh)
@@ -230,7 +243,7 @@ def _crop_to_origin(
     :param image: np.ndarray;
     :param origin_w: Union[int, dtype.INT];
     :param origin_h: Union[int, dtype.INT];
-    :param bg_fill: Union[int, Tuple[int, int, int], List[int]];
+    :param bg_fill: Union[int, tuple[int, int, int], list[int]];
     :return: np.ndarray;
     """
     dx, dy, bbox_w, bbox_h = bbox
@@ -239,7 +252,7 @@ def _crop_to_origin(
     slicer = np.zeros((2, 4), dtype=dtype.INT32)
     deltas, shape, bbox_shape = (dx, dy), (origin_w, origin_h), (bbox_w, bbox_h)
 
-    for idx, meta in enumerate(zip(deltas, shape, bbox_shape)):
+    for idx, meta in enumerate(zip(deltas, shape, bbox_shape, strict=False)):
         delta, origin_s, bbox_s = meta
 
         xrange = min([origin_s - 1, bbox_s])
@@ -293,12 +306,13 @@ def graph_defined_warp(
         faces_src: np.ndarray,
         vertices_dst: np.ndarray,
         faces_dst: np.ndarray,
-        use_scikit: Union[dtype.BOOL, bool] = False,
-        bg_fill: Union[int, Tuple[int, int, int], List[int]] = 255
+        *,
+        use_scikit: dtype.BOOL | bool = False,
+        bg_fill: int | tuple[int, int, int] | list[int] = 255,
 ) -> np.ndarray:
-    """
-    Based on triangulated shape transformed from source to destination mesh
-    will provide transformation of image. The idea is to do an affine transformation
+    """Based on triangulated shape transformed from source to destination mesh will provide transformation of image.
+
+    The idea is to do an affine transformation
     of each triangle in mesh. The affine transformation is definde for each triangle
     separately and partial results are merged at the end of the process.
 
@@ -308,7 +322,7 @@ def graph_defined_warp(
     :param vertices_dst: np.ndarray;
     :param faces_dst: np.ndarray;
     :param use_scikit: bool;
-    :param bg_fill: Union[int, Tuple[int], List[int]];
+    :param bg_fill: Union[int, tuple[int], list[int]];
     :return: np.ndarray;
     """
     # Create white image of shape of vertices bonding box.
@@ -324,7 +338,7 @@ def graph_defined_warp(
     bbox_base_image = _get_solid_background(bbox_w, bbox_h, bg_fill)
 
     # Iterate over all faces.
-    for f_src, f_dst in zip(faces_src, faces_dst):
+    for f_src, f_dst in zip(faces_src, faces_dst, strict=False):
         # Choose corresponding vertices defined by faces.
         r_src, r_dst = vertices_src[f_src], vertices_dst[f_dst]
         r_src, r_dst = np.array([r_src], dtype=r_src.dtype), np.array([r_dst], dtype=r_dst.dtype)
@@ -339,21 +353,20 @@ def graph_defined_warp(
         bbox_base_image = _broadcast_transformed_tri(bbox_base_image, bbox, warped, alpha)
 
     # Broadcast proper part of transformed bbox image to iamge of original shape.
-    base_image = _crop_to_origin(bbox_base_image, (dx, dy, bbox_w, bbox_h), width, height, bg_fill)
-
-    return base_image
+    return _crop_to_origin(bbox_base_image, (dx, dy, bbox_w, bbox_h), width, height, bg_fill)
 
 
-def graph_warp(
+def graph_warp(  # noqa: PLR0915
         vertices: np.ndarray,
         faces: np.ndarray,
         control_indices: np.ndarray,
         shifted_locations: np.ndarray,
         edges: np.ndarray = None,
-        precomputed: ArapPrecompute = None
+        precomputed: ArapPrecompute = None,
 ) -> np.ndarray:
-    """
-    Transform in ARAP manner graph defined by faces and vertices. The given graph will be transformed
+    """Transform in ARAP manner graph defined by faces and vertices.
+
+    The given graph will be transformed
     based on location of defined by shifted_locations. New location defined by shifted_locations
     correspond to original vertices via variable control_indices.
 
@@ -372,7 +385,7 @@ def graph_warp(
     :param control_indices: np.ndarray; indices of vertices in graph selected for transformation
     :param shifted_locations: np.ndarray; new location of control vertices
     :param edges: np.ndarray; set of edges defined by faces or None
-    :param precomputed: Tuple[np.ndarray, np.ndarray, np.ndarray]; [gi, g_product, h] or None
+    :param precomputed: tuple[np.ndarray, np.ndarray, np.ndarray]; [gi, g_product, h] or None
     :return: np.ndarray; transformed vertices
     """
     if edges is None:

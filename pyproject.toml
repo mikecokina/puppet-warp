@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "puppet-warp"
-version = "0.1.0"  # dynamically loaded in setup.py from version.py, this is fallback
+version = "0.4.0.dev0"  # dynamically loaded in setup.py from version.py, this is fallback
 description = "Puppet Warp"
 readme = "README.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.10,<3.14"
 license = { text = "GPL-3.0-or-later" }
 
 authors = [
@@ -22,12 +22,10 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Image Processing",
 #  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-  "Programming Language :: Python :: 3.7",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12"
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13"
 ]
 
 dependencies = [
@@ -41,7 +39,57 @@ dependencies = [
 [project.optional-dependencies]
 jrs = ["triangle>=20200424"]
 test = ["parameterized>=0.8.1"]
+dev = ["ruff>=0.6.0"]
 
 [project.urls]
 Homepage = "https://github.com/mikecokina/puppet-warp"
 Repository = "https://github.com/mikecokina/puppet-warp"
+
+[tool.ruff]
+exclude = ["unittests"]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "ALL",
+    "A",       # flake8-builtins
+    "ARG",     # flake8-unused-arguments
+    "B",       # flake8-bugbear
+    "C",       # mccabe
+    "DTZ",     # flake8-datetimez
+    "E",       # pycodestyle errors
+    "EM",      # flake8-errmsg
+    "F",       # pyflakes
+    "FBT",     # flake8-boolean-trap
+    "I",       # isort
+    "ICN",     # flake8-import-conventions
+    "ISC",     # flake8-implicit-str-concat
+    "N",       # pep8-naming
+    "PLC",     # pylint convention
+    "PLE",     # pylint errors
+    "PLR",     # pylint refactor
+    "PLW",     # pylint warnings
+    "Q",       # flake8-quotes
+    "RUF",     # ruff-specific rules
+    "S",       # flake8-bandit (security)
+    "T",       # flake8-debugger
+    "TID",     # tidy imports
+    "UP",      # pyupgrade
+    "W",       # pycodestyle warnings
+    "YTT",     # flake8-2020
+]
+ignore = [
+    "S311",
+    "PLR0913", # to many arguments
+    "B008",
+    "TID252",  # prefer absolute import
+    "F405",    # os import
+    "PLR2004", #
+    "D101",    # missing docstring
+    "D102",    # Missing docstring in public method
+    "D103",    # Missing docstring in public function
+    "D105",    # Missing docstring in magic method
+    "ERA001",  # Found commented-out code
+    "FAST002",
+]
