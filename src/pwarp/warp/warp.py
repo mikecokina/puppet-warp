@@ -1,4 +1,5 @@
-from typing import Union, Iterable, Tuple, List
+from dataclasses import dataclass
+from typing import Union, Iterable, Tuple, List, cast
 
 import cv2
 import numpy as np
@@ -12,6 +13,32 @@ __all__ = (
     'graph_defined_warp',
     'graph_warp',
 )
+
+
+@dataclass
+class _FactorCache:
+    matrix: np.ndarray
+    cholesky: np.ndarray  # cholesky factor of (a.T @ a)
+
+
+def _cap_cache(d: dict, max_items: int = 32) -> None:
+    """
+    Keep cache size bounded to avoid unbounded growth when control sets change.
+    Pops the oldest inserted items first (dict preserves insertion order in Py 3.7+).
+    """
+    while len(d) > max_items:
+        d.pop(next(iter(d)))
+
+
+_step1_cache: dict[tuple[int, float], _FactorCache] = {}
+_step2_cache: dict[tuple[int, float], _FactorCache] = {}
+
+
+def _chol_ata(a: np.ndarray) -> np.ndarray:
+    ata = a.T @ a
+    eps = dtype.FLOAT(1e-10)
+    ata = ata + eps * np.eye(ata.shape[0], dtype=ata.dtype)
+    return np.linalg.cholesky(ata)
 
 
 def _broadcast_transformed_tri(
@@ -328,12 +355,71 @@ def graph_warp(
         g_product = precomputed.g_product
         h = precomputed.h
 
-    # Compute v' from paper.
-    args = edges, vertices, gi, h, control_indices, shifted_locations
-    new_vertices, _, _ = StepOne.compute_v_prime(*args)
+    # Normalize inputs for stable caching keys.
+    control_indices = np.asarray(control_indices, dtype=int)
+    shifted_locations = np.asarray(shifted_locations, dtype=dtype.FLOAT)
 
-    # Compute v'' from paper.
-    t_matrix = StepTwo.compute_t_matrix(edges, g_product, gi, new_vertices)
-    new_vertices = StepTwo.compute_v_2prime(edges, vertices, t_matrix, control_indices, shifted_locations)
+    # Weight is implicit in your current StepOne/Two defaults.
+    # If you later expose weight in graph_warp signature, use it here and in the key.
+    weight = dtype.FLOAT(1000.0)
+
+    control_key = hash(control_indices.tobytes())
+    cache_key = (control_key, float(weight))
+
+    # -------- Step 1 (v') --------
+    # Use cached factorization if available.
+    step1_cached = _step1_cache.get(cache_key)
+
+    # If your refactor added builders, prefer them for fast path:
+    a1_maker = getattr(StepOne, "build_a_matrix", None)
+    b1_maker = getattr(StepOne, "build_b_vector", None)
+
+    if a1_maker is not None and b1_maker is not None:
+        if step1_cached is None:
+            a1_matrix = a1_maker(edges, vertices, gi, h, control_indices, weight=weight)
+            l1_factor = _chol_ata(a1_matrix)
+            step1_cached = _FactorCache(matrix=a1_matrix, cholesky=l1_factor)
+            _step1_cache[cache_key] = step1_cached
+            _cap_cache(_step1_cache, max_items=32)
+
+        b1_vector = b1_maker(edges, control_indices, shifted_locations, weight=weight)
+
+        atb_1 = step1_cached.matrix.T @ b1_vector
+        y_1 = np.linalg.solve(step1_cached.cholesky, atb_1)
+        v_1 = np.linalg.solve(step1_cached.cholesky.T, y_1)
+
+        v_prime = np.zeros((np.size(vertices, axis=0), 2), dtype=dtype.FLOAT)
+        v_prime[:, 0] = v_1[0::2, 0]
+        v_prime[:, 1] = v_1[1::2, 0]
+    else:
+        # Fallback to original implementation if builders are not present.
+        args = edges, vertices, gi, h, control_indices, shifted_locations
+        v_prime, _, _ = StepOne.compute_v_prime(*args)
+
+    # -------- Step 2 (v'') --------
+    t_matrix = StepTwo.compute_t_matrix(edges, g_product, gi, v_prime)
+
+    step2_cached = _step2_cache.get(cache_key)
+
+    a2_maker = getattr(StepTwo, "build_a2_matrix", None)
+    b2_maker = getattr(StepTwo, "build_b2_vector", None)
+
+    if a2_maker is not None and b2_maker is not None:
+        if step2_cached is None:
+            a2_matrix = a2_maker(edges, vertices, control_indices, weight=weight)
+            l2_factor = _chol_ata(a2_matrix)
+            step2_cached = _FactorCache(matrix=a2_matrix, cholesky=l2_factor)
+            _step2_cache[cache_key] = step2_cached
+            _cap_cache(_step2_cache, max_items=32)
+
+        b2_vector = b2_maker(edges, vertices, t_matrix, control_indices, shifted_locations, weight=weight)
+
+        atb_2 = step2_cached.matrix.T @ b2_vector
+        y_2 = np.linalg.solve(step2_cached.cholesky, atb_2)
+        v_2 = np.linalg.solve(step2_cached.cholesky.T, y_2)
+        new_vertices = v_2
+    else:
+        # Fallback to original implementation if builders are not present.
+        new_vertices = StepTwo.compute_v_2prime(edges, vertices, t_matrix, control_indices, shifted_locations)
 
     return new_vertices
