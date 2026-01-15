@@ -51,6 +51,11 @@ exclude = ["unittests"]
 line-length = 120
 target-version = "py312"
 
+[tool.ruff]
+exclude = [
+  "tests/**",
+]
+
 [tool.ruff.lint]
 select = [
     "ALL",
