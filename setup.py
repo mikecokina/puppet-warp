@@ -10,7 +10,7 @@ New approach:
 2.  make sure version information in following destinations is up to date:
 
     - `version.py` in function `get_version()`
-    - `README.rst` in yellow version badge https://img.shields.io/badge/version-<VERSION>-yellow.svg
+    - `README.md` in yellow version badge https://img.shields.io/badge/version-<VERSION>-yellow.svg
     - in `src/pwarp/__init__.py`, variable `__version__`
 
 3.  make sure that `CHANGELOG.rst` is up-to-date; content as well as release date and valid version
@@ -20,7 +20,7 @@ New approach:
     and `project.optional-dependencies`.
 
 5.  make sure the latest docstsring documentation is generated and there is no error during Sphinx HTML build
-    (for more comprehensive information take a look into `docs/README.rst`)
+    (for more comprehensive information take a look into `docs/README.md`)
 
 6.  make sure setup.cfg contains all supported Python versions
 
@@ -71,8 +71,8 @@ sys.path.insert(0, here)
 from version import get_version  # noqa
 
 # Get the long description from the README file
-with open(path.join(here, "README.rst"), encoding="utf-8") as f:
-    long_description = "For more information visit https://github.com/mikecokina/puppet-warp/blob/master/README.rst"
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
+    long_description = "For more information visit https://github.com/mikecokina/puppet-warp/blob/master/README.md"
 
 setup(
     name="puppet-warp",

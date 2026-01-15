@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "puppet-warp"
 version = "0.4.0.dev0"  # dynamically loaded in setup.py from version.py, this is fallback
 description = "Puppet Warp"
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.10,<3.14"
 license = { text = "GPL-3.0-or-later" }
 
