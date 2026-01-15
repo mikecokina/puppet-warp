@@ -12,7 +12,99 @@ __all__ = (
 )
 
 
-class StepOne(object):
+class StepOne:
+    @staticmethod
+    def build_a_matrix(
+            edges: np.ndarray,
+            vertices: np.ndarray,
+            gi: np.ndarray,
+            h_matrix: np.ndarray,
+            c_indices: np.ndarray,
+            weight: dtype.FLOAT = dtype.FLOAT(1000.),
+    ) -> np.ndarray:
+        """
+        Build A1 matrix for step one: A1 @ v' = b1.
+
+        A1 depends on mesh topology (edges, gi), h_matrix, and which vertices are controls (c_indices),
+        plus the constraint weight. It does not depend on the actual control target positions.
+        """
+        a1_matrix = np.zeros(
+            (np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2),
+            dtype=dtype.FLOAT
+        )
+
+        # Edge-related rows.
+        for k, g_indices in enumerate(gi):
+            for i, point_index in enumerate(g_indices):
+                if point_index >= 0:
+                    point_index = int(point_index)
+
+                    # In the h_matrix we have stored values for index k (edge index) in following form:
+                    # for k = 0, two lines of h_matrix are going one after another like
+                    # [k00, k10, k20, ..., k70] forlowed by [k01, k11, k21, ..., k71], hence we have to access values
+                    # via (k * 2), and (k * 2 + 1).
+
+                    # Variable point_index represent index from original vertices set of vertex from
+                    # 4 neighbours of k-th edge.
+                    # Index `i` represents an index of point from 4 (3 in case of contour) neighbours in k-th set.
+
+                    # The row in the A matrix is defiend by index k. Since we have stored for given k index two rows
+                    # of H matrix, we have to work with indexing of (k * 2) and (k * 2 + 1).
+
+                    # The column of H matrix is accessible via index i, since H row is 0 - 7 indices long. Then
+                    # (i * 2) and (i * 2 + 1) will access h valus for given point in given h row.
+
+                    a1_matrix[k * 2, point_index * 2] = h_matrix[k * 2, i * 2]
+                    a1_matrix[k * 2 + 1, point_index * 2] = h_matrix[k * 2 + 1, i * 2]
+                    a1_matrix[k * 2, point_index * 2 + 1] = h_matrix[k * 2, i * 2 + 1]
+                    a1_matrix[k * 2 + 1, point_index * 2 + 1] = h_matrix[k * 2 + 1, i * 2 + 1]
+
+        # Constraint rows: only A side (weights at control indices).
+        for c_enum_index, c_vertex_index in enumerate(c_indices):
+            c_vertex_index: int = c_vertex_index
+            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
+            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
+
+        return a1_matrix
+
+    @staticmethod
+    def build_b_vector(
+            edges: np.ndarray,
+            c_indices: np.ndarray,
+            c_vertices: np.ndarray,
+            weight: dtype.FLOAT = dtype.FLOAT(1000.),
+    ) -> np.ndarray:
+        """
+        Build b1 vector for step one: A1 @ v' = b1.
+
+        b1 depends on the current target positions of control vertices (c_vertices) and weight.
+        """
+        b1_vector = np.zeros(
+            (np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1),
+            dtype=dtype.FLOAT
+        )
+
+        for c_enum_index, _c_vertex_index in enumerate(c_indices):
+            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2] = weight * c_vertices[c_enum_index, 0]
+            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1] = weight * c_vertices[c_enum_index, 1]
+
+        return b1_vector
+
+    @staticmethod
+    def solve_step(
+            a1_matrix: np.ndarray,
+            b1_vector: np.ndarray,
+            num_vertices: int,
+    ) -> np.ndarray:
+        """
+        Solve step one normal equations and return v' as (num_vertices, 2).
+        """
+        v = np.linalg.lstsq(a1_matrix.T @ a1_matrix, a1_matrix.T @ b1_vector, rcond=None)[0]
+        v_prime = np.zeros((num_vertices, 2), dtype=dtype.FLOAT)
+        v_prime[:, 0] = v[0::2, 0]
+        v_prime[:, 1] = v[1::2, 0]
+        return v_prime
+
     @staticmethod
     def compute_g_matrix(
             vertices: np.ndarray,
@@ -29,8 +121,7 @@ class StepOne(object):
         :param faces: np.ndarray;
         :return: Tuple[np.ndarray, np.ndarray];
 
-        ::
-
+        Notes:
             gi represents indices of edges that contains result
             for expression (G.T)^{-1} @ G.T in g_product
         """
@@ -93,7 +184,7 @@ class StepOne(object):
     ) -> np.ndarray:
         """
         Transformed term (v′_j − v′_i) − T_{ij} (v_j − v_i) from paper requires
-        computation of matrix H. To be able compute matrix H, we need matrix G
+        computation of matrix H. To be able to compute matrix H, we need matrix G
         from other method.
 
         :param edges: np.ndarray; requires dtype int/np.uint32/np.uint64
@@ -152,53 +243,81 @@ class StepOne(object):
 
         :return: Tuple[np.ndarray, np.ndarray, np.ndarray]; (v_prime, A matrix, b vector)
         """
-        # Prepare defaults.
-        a1_matrix = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, np.size(vertices, axis=0) * 2),
-                             dtype=dtype.FLOAT)
-        b1_vector = np.zeros((np.size(edges, axis=0) * 2 + np.size(c_indices) * 2, 1), dtype=dtype.FLOAT)
-        v_prime = np.zeros((np.size(vertices, axis=0), 2), dtype=dtype.FLOAT)
-
-        # Fill values in prepared matrices/vectors
-        for k, g_indices in enumerate(gi):
-            for i, point_index in enumerate(g_indices):
-                if point_index >= 0:
-                    point_index = int(point_index)
-                    # In the h_matrix we have stored values for index k (edge index) in following form:
-                    # for k = 0, two lines of h_matrix are going one after another like
-                    # [k00, k10, k20, ..., k70] forlowed by [k01, k11, k21, ..., k71], hence we have to access values
-                    # via (k * 2), and (k * 2 + 1).
-
-                    # Variable point_index represent index from original vertices set of vertex from
-                    # 4 neighbours of k-th edge.
-                    # Index i represents an index of point from 4 (3 in case of contour) neighbours in k-th set.
-
-                    # The row in the A matrix is defiend by index k. Since we have stored for given k index two rows
-                    # of H matrix, we have to work with indexing of (k * 2) and (k * 2 + 1).
-
-                    # The column of H matrix is accessible via index i, since H row is 0 - 7 indices long. Than
-                    # (i * 2) and (i * 2 + 1) will access h valus for given point in given h row.
-
-                    a1_matrix[k * 2, point_index * 2] = h_matrix[k * 2, i * 2]
-                    a1_matrix[k * 2 + 1, point_index * 2] = h_matrix[k * 2 + 1, i * 2]
-                    a1_matrix[k * 2, point_index * 2 + 1] = h_matrix[k * 2, i * 2 + 1]
-                    a1_matrix[k * 2 + 1, point_index * 2 + 1] = h_matrix[k * 2 + 1, i * 2 + 1]
-
-        for c_enum_index, c_vertex_index in enumerate(c_indices):
-            # Set weights for given position of control point.
-            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2, c_vertex_index * 2] = weight
-            a1_matrix[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1, c_vertex_index * 2 + 1] = weight
-            # Do the same for values of b_vector
-            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2] = weight * c_vertices[c_enum_index, 0]
-            b1_vector[np.size(edges, axis=0) * 2 + c_enum_index * 2 + 1] = weight * c_vertices[c_enum_index, 1]
-
-        v = np.linalg.lstsq(a1_matrix.T @ a1_matrix, a1_matrix.T @ b1_vector, rcond=None)[0]
-        v_prime[:, 0] = v[0::2, 0]
-        v_prime[:, 1] = v[1::2, 0]
-
+        a1_matrix = StepOne.build_a_matrix(edges, vertices, gi, h_matrix, c_indices, weight=weight)
+        b1_vector = StepOne.build_b_vector(edges, c_indices, c_vertices, weight=weight)
+        v_prime = StepOne.solve_step(a1_matrix, b1_vector, num_vertices=np.size(vertices, axis=0))
         return v_prime, a1_matrix, b1_vector
 
 
-class StepTwo(object):
+class StepTwo:
+    @staticmethod
+    def build_a2_matrix(
+            edges: np.ndarray,
+            vertices: np.ndarray,
+            c_indices: np.ndarray,
+            weight: dtype.FLOAT = dtype.FLOAT(1000),
+    ) -> np.ndarray:
+        """
+        Build A2 matrix for step two. A2 depends on mesh connectivity (edges) and constraint indices,
+        plus weight. It does not depend on t_matrix nor on the control target positions.
+        """
+        a2_matrix = np.zeros(
+            (np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)),
+            dtype=dtype.FLOAT
+        )
+
+        # Update values from precomputed components.
+        # Matrix A2 is identical for both x- and y- components.
+        for k, edge in enumerate(edges):
+            # The values are set due to optimization equation from paper, where
+            # arg min {sum_{i,j}||(v_j'' - v_i'')  ... ||} what gives 1 to position
+            # of edge 0 and -1 to position of edge 1, and finally we will obtain (v_j'' - v_i'').
+            a2_matrix[k, int(edge[0])] = dtype.FLOAT(-1.)
+            a2_matrix[k, int(edge[1])] = dtype.FLOAT(1.)
+
+        for c_enum_index, c_vertex_index in enumerate(c_indices):
+            a2_matrix[np.size(edges, 0) + c_enum_index, c_vertex_index] = weight
+
+        return a2_matrix
+
+    @staticmethod
+    def solve_step(
+            a2_matrix: np.ndarray,
+            b2_vector: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Solve step two normal equations and return v'' as (num_vertices, 2).
+        """
+        return np.linalg.lstsq(a2_matrix.T @ a2_matrix, a2_matrix.T @ b2_vector, rcond=None)[0]
+
+    @staticmethod
+    def build_b2_vector(
+            edges: np.ndarray,
+            vertices: np.ndarray,
+            t_matrix: np.ndarray,
+            c_indices: np.ndarray,
+            c_vertices: np.ndarray,
+            weight: dtype.FLOAT = dtype.FLOAT(1000),
+    ) -> np.ndarray:
+        """
+        Build b2 matrix (two columns x and y) for step two.
+        Depends on t_matrix (changes per step-one result) and control target positions.
+        """
+        b2_vector = np.zeros(
+            (np.size(edges, axis=0) + np.size(c_indices), 2),
+            dtype=dtype.FLOAT
+        )
+
+        for k, edge in enumerate(edges):
+            e = np.subtract(*vertices[edge[::-1]])
+            t_e = t_matrix[k, :, :] @ e
+            b2_vector[k, :] = t_e[0], t_e[1]
+
+        for c_index, _c in enumerate(c_indices):
+            b2_vector[np.size(edges, 0) + c_index, :] = weight * c_vertices[c_index, :]
+
+        return b2_vector
+
     @staticmethod
     def compute_t_matrix(
             edges: np.ndarray,
@@ -278,26 +397,6 @@ class StepTwo(object):
         :param weight: np.float; dtype.FLOAT
         :return: np.ndarray;
         """
-        # Prepare blueprints.
-        a2_matrix = np.zeros((np.size(edges, axis=0) + np.size(c_indices), np.size(vertices, axis=0)),
-                             dtype=dtype.FLOAT)
-        b2_vector = np.zeros((np.size(edges, axis=0) + np.size(c_indices), 2), dtype=dtype.FLOAT)
-
-        # Update values from precomputed components.
-        # Matrix A2 is identical for both x- and y- components.
-        for k, edge in enumerate(edges):
-            # The values are set due to optimization equation from paper, where
-            # arg min {sum_{i,j}||(v_j'' - v_i'')  ... ||} what gives 1 to position
-            # of edge 0 and -1 to position of edge 1 and finally we will obtain (v_j'' - v_i'').
-            a2_matrix[k, int(edge[0])] = dtype.FLOAT(-1.)
-            a2_matrix[k, int(edge[1])] = dtype.FLOAT(1.)
-
-            e = np.subtract(*vertices[edge[::-1]])
-            t_e = t_matrix[k, :, :] @ e
-            b2_vector[k, :] = t_e[0], t_e[1]
-
-        for c_index, c in enumerate(c_indices):
-            a2_matrix[np.size(edges, 0) + c_index, c] = weight
-            b2_vector[np.size(edges, 0) + c_index, :] = weight * c_vertices[c_index, :]
-
-        return np.linalg.lstsq(a2_matrix.T @ a2_matrix, a2_matrix.T @ b2_vector, rcond=None)[0]
+        a2_matrix = StepTwo.build_a2_matrix(edges, vertices, c_indices, weight=weight)
+        b2_vector = StepTwo.build_b2_vector(edges, vertices, t_matrix, c_indices, c_vertices, weight=weight)
+        return StepTwo.solve_step(a2_matrix, b2_vector)
