@@ -31,7 +31,7 @@ def build_edge_opposites(faces: np.ndarray) -> dict[tuple[int, int], list[int]]:
 
 def find_ijlr_vertices(
         edge: np.ndarray,
-        edge_to_opp: dict[tuple[int, int], list[int]]
+        edge_to_opp: dict[tuple[int, int], list[int]],
 ) -> tuple[int, int]:
     """Vertex finder.
 
@@ -43,11 +43,11 @@ def find_ijlr_vertices(
     have found that it produces good results. An exception applies to edges on
     the boundary. In those cases, we only USE THREE VERTICES to compute Tk.
 
-    Source: Igarashi et al., 2009:
+    Source: Igarashi et al., 2009::
 
-    l x--------x j
-            // edge
-        i x-------x r
+        l x--------x j
+                // edge
+            i x-------x r
 
     Find indices of vertex l and r. When edge i-j is situated at the edge of graph,
     then use only vertex l and r will be set as -1.

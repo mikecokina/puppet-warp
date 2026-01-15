@@ -12,6 +12,14 @@ pwarp.core.arap module
    :undoc-members:
    :show-inheritance:
 
+pwarp.core.const module
+-----------------------
+
+.. automodule:: pwarp.core.const
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pwarp.core.dtype module
 -----------------------
 
@@ -24,6 +32,14 @@ pwarp.core.ops module
 ---------------------
 
 .. automodule:: pwarp.core.ops
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pwarp.core.precompute module
+----------------------------
+
+.. automodule:: pwarp.core.precompute
    :members:
    :undoc-members:
    :show-inheritance:
