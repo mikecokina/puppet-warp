@@ -35,10 +35,33 @@ _step2_cache: dict[tuple[int, float], _FactorCache] = {}
 
 
 def _chol_ata(a: np.ndarray) -> np.ndarray:
+    """
+    Cholesky of (A.T @ A + eps * I).
+
+    When constraints are weak (e.g. a single control point), A.T @ A can be
+    singular or numerically indefinite. We add adaptive diagonal damping until
+    the matrix becomes positive definite.
+    """
     ata = a.T @ a
-    eps = dtype.FLOAT(1e-10)
-    ata = ata + eps * np.eye(ata.shape[0], dtype=ata.dtype)
-    return np.linalg.cholesky(ata)
+
+    # Scale-aware starting epsilon
+    # (trace / n) is a decent scale estimate; keep it nonzero.
+    n = ata.shape[0]
+    scale = float(np.trace(ata)) / float(n) if n > 0 else 1.0
+    if not np.isfinite(scale) or scale <= 0.0:
+        scale = 1.0
+
+    eps = dtype.FLOAT(1e-12 * scale)
+    eye = np.eye(n, dtype=ata.dtype)
+
+    for _ in range(8):  # 8 rounds is enough (1e-12 -> 1e-4 scale)
+        try:
+            return np.linalg.cholesky(ata + eps * eye)
+        except np.linalg.LinAlgError:
+            eps = dtype.FLOAT(eps * 10.0)
+
+    # If we still fail, propagate - caller can fall back to lstsq.
+    raise np.linalg.LinAlgError("Matrix is not positive definite even after damping")
 
 
 def _broadcast_transformed_tri(
