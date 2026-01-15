@@ -84,12 +84,12 @@ def inbox_tri_warp(
     :return: Tuple[np.ndarray, np.ndarray, Tuple[int, int, int, int]];
     """
     # Find bounding rectangle for each triangle in form (x, y, width, height).
-    bbox_src = cv2.boundingRect(tri_src)
-    bbox_dst = cv2.boundingRect(tri_dst)
+    bbox_src = cast(Tuple[int, int, int, int], cv2.boundingRect(tri_src))
+    bbox_dst = cast(Tuple[int, int, int, int], cv2.boundingRect(tri_dst))
 
     # Offset points by left top corner of the respective rectangles.
-    tri_src_cropped = tri_src[0, :, :] - bbox_src[:2]
-    tri_dst_cropped = tri_dst[0, :, :] - bbox_dst[:2]
+    tri_src_cropped = tri_src[0, :, :] - np.array(bbox_src[:2], dtype=tri_src.dtype)
+    tri_dst_cropped = tri_dst[0, :, :] - np.array(bbox_dst[:2], dtype=tri_dst.dtype)
 
     # Crop input image.
     src_cropped = src[bbox_src[1]:bbox_src[1] + bbox_src[3], bbox_src[0]:bbox_src[0] + bbox_src[2]]
@@ -98,19 +98,29 @@ def inbox_tri_warp(
     if use_scikit:
         # Scikit based warp requires inverse approach to source/destination points.
         scikit_warp_matrix = affine.affine_transformation(tri_dst_cropped, tri_src_cropped)
-        dst_cropped = affine.warp(src_cropped, scikit_warp_matrix, mode='edge', output_shape=(bbox_dst[3], bbox_dst[2]))
+        dst_cropped = affine.warp(
+            src_cropped,
+            scikit_warp_matrix,
+            mode='edge',
+            output_shape=(bbox_dst[3], bbox_dst[2]),
+        )
+        dst_cropped = np.asarray(dst_cropped)
     else:
         cv2_warp_matrix = affine.affine_transformation(tri_src_cropped, tri_dst_cropped)[:2, :]
         # Apply the Affine Transform  to the src image.
         _kwargs = dict(flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT101)
         dst_cropped = cv2.warpAffine(src_cropped, cv2_warp_matrix, (bbox_dst[2], bbox_dst[3]), None, **_kwargs)
+        dst_cropped = np.asarray(dst_cropped)
 
     # Get mask by filling triangle.
     mask = np.zeros((bbox_dst[3], bbox_dst[2], 3), dtype=dtype.UINT8)
     cv2.fillConvexPoly(mask, dtype.INT32(tri_dst_cropped), (1, 1, 1), 16, 0)
     dst_cropped *= mask
 
-    return dst_cropped, mask, bbox_dst
+    # Ensure bbox is exactly the declared return type.
+    bbox_dst_typed: Tuple[int, int, int, int] = (int(bbox_dst[0]), int(bbox_dst[1]), int(bbox_dst[2]), int(bbox_dst[3]))
+
+    return dst_cropped, mask, bbox_dst_typed
 
 
 def tri_warp(
